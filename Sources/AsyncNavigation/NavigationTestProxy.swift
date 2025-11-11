@@ -9,7 +9,7 @@ import Foundation
 import Combine
 import CombineEx
 
-class NavigationTestProxy: NavigationProxy {
+public class NavigationTestProxy: NavigationProxy {
     class PlaceholderViewModel: BasicViewModel {
         var publishedValue: PassthroughSubject<Void, Cancel> = .init()
 
@@ -88,7 +88,7 @@ class NavigationTestProxy: NavigationProxy {
         currentViewModelPublisher.send(.init(timeIndex: timeIndex, viewModel: viewModel))
     }
 
-    var currentIndex: Int {
+    public var currentIndex: Int {
         stack.count - 1
     }
 
