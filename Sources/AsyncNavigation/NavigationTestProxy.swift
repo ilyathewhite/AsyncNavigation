@@ -33,7 +33,7 @@ public class NavigationTestProxy: NavigationProxy {
     }
 
     @MainActor
-    struct ViewModelInfo {
+    public struct ViewModelInfo {
         let timeIndex: Int
         let viewModel: any BasicViewModel
 
@@ -45,7 +45,7 @@ public class NavigationTestProxy: NavigationProxy {
     }
 
     public private(set) var stack: [any ViewModelUIContainer] = []
-    let currentViewModelPublisher: CurrentValueSubject<ViewModelInfo, Never> = .init(.placeholder)
+    public let currentViewModelPublisher: CurrentValueSubject<ViewModelInfo, Never> = .init(.placeholder)
 
     public init() {}
 
