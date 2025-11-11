@@ -40,7 +40,7 @@ public class NavigationTestProxy: NavigationProxy {
         static let placeholder = Self.init(timeIndex: -1, viewModel: PlaceholderViewModel())
     }
 
-    enum CurrentViewModelError: Error {
+    public enum CurrentViewModelError: Error {
         case typeMismatch
     }
 
