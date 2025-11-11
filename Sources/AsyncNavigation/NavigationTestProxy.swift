@@ -34,8 +34,8 @@ public class NavigationTestProxy: NavigationProxy {
 
     @MainActor
     public struct ViewModelInfo {
-        let timeIndex: Int
-        let viewModel: any BasicViewModel
+        public let timeIndex: Int
+        public let viewModel: any BasicViewModel
 
         static let placeholder = Self.init(timeIndex: -1, viewModel: PlaceholderViewModel())
     }
