@@ -47,6 +47,8 @@ public class NavigationTestProxy: NavigationProxy {
     public private(set) var stack: [any ViewModelUIContainer] = []
     let currentViewModelPublisher: CurrentValueSubject<ViewModelInfo, Never> = .init(.placeholder)
 
+    public init() {}
+
     /// Returns the viewModel of a particular type for a given time index.
     ///
     /// Used only for testing.
