@@ -1,5 +1,5 @@
 //
-//  NavigationSwiftUIFlow.swift
+//  NavigationFlow.swift
 //  ReducerArchitecture
 //
 //  Created by Ilya Belenkiy on 11/4/25.
@@ -63,3 +63,4 @@ public extension View {
         self.modifier(AddNavigation(type: type))
     }
 }
+

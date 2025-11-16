@@ -1,5 +1,5 @@
 //
-//  NavigationSwiftUIProxy.swift
+//  NavigationPathContainer.swift
 //  ReducerArchitecture
 //
 //  Created by Ilya Belenkiy on 11/4/25.
@@ -8,32 +8,32 @@
 import SwiftUI
 
 @MainActor
-public class NavigationPathContainer: ObservableObject, NavigationProxy {
+class NavigationPathContainer: ObservableObject, NavigationProxy {
     var root: (any ViewModelUIContainer)?
-    public private(set) var stack: [any ViewModelUIContainer] = []
-    private var internalChange = false
+    private(set) var stack: [any ViewModelUIContainer] = []
+    private var isInternalChange = false
 
-    @Published public var path: NavigationPath = .init() {
+    @Published var path: NavigationPath = .init() {
         willSet {
-            guard !internalChange else { return }
+            guard !isInternalChange else { return }
             while newValue.count < stack.count {
                 stack.removeLast().cancel()
             }
         }
     }
 
-    public init() {}
+    init() {}
 
-    public var currentIndex: Int {
+    var currentIndex: Int {
         assert(path.count == stack.count)
         return path.count - 1
     }
 
-    public func push<Nsp: ViewModelUINamespace>(_ viewModelUI: ViewModelUI<Nsp>) -> Int {
+    func push<Nsp: ViewModelUINamespace>(_ viewModelUI: ViewModelUI<Nsp>) -> Int {
         assert(path.count == stack.count)
-        internalChange = true
+        isInternalChange = true
         defer {
-            internalChange = false
+            isInternalChange = false
         }
         stack.append(viewModelUI)
         path.append(viewModelUI)
@@ -41,11 +41,11 @@ public class NavigationPathContainer: ObservableObject, NavigationProxy {
 
     }
 
-    public func replaceTop<Nsp: ViewModelUINamespace>(with viewModelUI: ViewModelUI<Nsp>) -> Int {
+    func replaceTop<Nsp: ViewModelUINamespace>(with viewModelUI: ViewModelUI<Nsp>) -> Int {
         assert(path.count == stack.count)
-        internalChange = true
+        isInternalChange = true
         defer {
-            internalChange = false
+            isInternalChange = false
         }
 
         stack.last?.cancel()
@@ -55,11 +55,11 @@ public class NavigationPathContainer: ObservableObject, NavigationProxy {
         return push(viewModelUI)
     }
 
-    public func popTo(_ index: Int) {
+    func popTo(_ index: Int) {
         assert(path.count == stack.count)
-        internalChange = true
+        isInternalChange = true
         defer {
-            internalChange = false
+            isInternalChange = false
         }
 
         guard -1 <= index, index < stack.count else {

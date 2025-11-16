@@ -8,20 +8,20 @@
 import SwiftUI
 
 public protocol ViewModelContentView: View {
-    associatedtype ViewMdodel: BasicViewModel
-    init(_ viewModel: ViewMdodel)
+    associatedtype ViewModel: BasicViewModel
+    init(_ viewModel: ViewModel)
 }
 
 public protocol ViewModelUINamespace {
     associatedtype ContentView: ViewModelContentView
-    associatedtype ViewModel: BasicViewModel where ViewModel == ContentView.ViewMdodel
+    associatedtype ViewModel: BasicViewModel where ViewModel == ContentView.ViewModel
 }
 
 @MainActor
 public protocol ViewModelUIContainer: Hashable, Identifiable {
     associatedtype Nsp: ViewModelUINamespace
     var viewModel: Nsp.ViewModel { get }
-    init(_ store: Nsp.ViewModel)
+    init(_ viewModel: Nsp.ViewModel)
 }
 
 extension ViewModelUIContainer {
@@ -71,3 +71,4 @@ public struct ViewModelUI<Nsp: ViewModelUINamespace>: ViewModelUIContainer {
         self.init(viewModel)
     }
 }
+

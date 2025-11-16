@@ -1,5 +1,5 @@
 //
-//  NavigationUIKitFlow.swift
+//  UIKitNavigationFlow.swift
 //  ReducerArchitecture
 //
 //  Created by Ilya Belenkiy on 11/4/25.
@@ -38,7 +38,7 @@ public struct UIKitNavigationFlow<Nsp: ViewModelUINamespace>: View {
     public let root: RootViewModel
     public let run: (RootViewModel.PublishedValue, _ proxy: NavigationProxy) async -> Void
 
-    public init(root: RootViewModel, run: @escaping (RootViewModel.PublishedValue, _: NavigationProxy) async -> Void) {
+    public init(root: RootViewModel, run: @escaping (RootViewModel.PublishedValue, _ proxy: NavigationProxy) async -> Void) {
         self.root = root
         self.run = run
     }
@@ -53,9 +53,9 @@ public struct UIKitNavigationFlow<Nsp: ViewModelUINamespace>: View {
 struct UIKitNavigationFlowImpl<Nsp: ViewModelUINamespace>: UIViewControllerRepresentable {
     public typealias RootViewModel = Nsp.ViewModel
     let root: RootViewModel
-    let run: (RootViewModel.PublishedValue, _ env: NavigationProxy) async -> Void
+    let run: (RootViewModel.PublishedValue, _ proxy: NavigationProxy) async -> Void
 
-    init(root: RootViewModel, run: @escaping (RootViewModel.PublishedValue, _: NavigationProxy) async -> Void) {
+    init(root: RootViewModel, run: @escaping (RootViewModel.PublishedValue, _ proxy: NavigationProxy) async -> Void) {
         self.root = root
         self.run = run
     }
@@ -69,7 +69,7 @@ struct UIKitNavigationFlowImpl<Nsp: ViewModelUINamespace>: UIViewControllerRepre
         let rootVC = HostingController<ViewModelUI<Nsp>>(viewModel: root)
         let nc = UINavigationController(rootViewController: rootVC)
         Task {
-            let navigationProxy = NavigationUIKitProxy(nc)
+            let navigationProxy = UIKitNavigationProxy(nc)
             await root.get { value in
                 await run(value, navigationProxy)
             }
@@ -83,4 +83,6 @@ struct UIKitNavigationFlowImpl<Nsp: ViewModelUINamespace>: UIViewControllerRepre
 }
 
 #endif
+
+
 

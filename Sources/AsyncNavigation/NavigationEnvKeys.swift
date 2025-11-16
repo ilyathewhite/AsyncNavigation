@@ -8,11 +8,11 @@
 import SwiftUI
 
 private struct BackActionKey: EnvironmentKey {
-    static let defaultValue: (() -> ())? = nil
+    static let defaultValue: (() -> Void)? = nil
 }
 
 public extension EnvironmentValues {
-    var backAction: (() -> ())? {
+    var backAction: (() -> Void)? {
         get { self[BackActionKey.self] }
         set { self[BackActionKey.self] = newValue }
     }
@@ -34,5 +34,4 @@ public struct NavigationPathStackKey: PreferenceKey {
         value = value ?? nextValue()
     }
 }
-
 

@@ -1,5 +1,5 @@
 //
-//  ReducerArchitectureNavigation.swift
+//  NavigationFullScreenOrWindow.swift
 //
 //  Created by Ilya Belenkiy on 3/28/23.
 //
@@ -11,12 +11,12 @@ import os
 import SwiftUI
 
 @MainActor
-enum ViewModelUIContainers {
+enum ViewModelUIRegistry {
     private static var dict: [UUID: any ViewModelUIContainer] = [:]
 
-    static func add(_ viewModelUIUI: any ViewModelUIContainer) {
-        guard dict[viewModelUIUI.id] == nil else { return }
-        dict[viewModelUIUI.id] = viewModelUIUI
+    static func add(_ viewModelUI: any ViewModelUIContainer) {
+        guard dict[viewModelUI.id] == nil else { return }
+        dict[viewModelUI.id] = viewModelUI
     }
 
     static func remove(id: UUID) {
@@ -37,14 +37,14 @@ enum ViewModelUIContainers {
 
 #if os(macOS)
 
-private struct DismissModalWindowKey: EnvironmentKey {
-    static let defaultValue: (() -> ())? = nil
+private struct DismissModalWindowActionKey: EnvironmentKey {
+    static let defaultValue: (() -> Void)? = nil
 }
 
 public extension EnvironmentValues {
-    var dismissModalWindow: (() -> ())? {
-        get { self[DismissModalWindowKey.self] }
-        set { self[DismissModalWindowKey.self] = newValue }
+    var dismissModalWindowAction: (() -> Void)? {
+        get { self[DismissModalWindowActionKey.self] }
+        set { self[DismissModalWindowActionKey.self] = newValue }
     }
 }
 
@@ -81,12 +81,12 @@ public struct FullScreenOrWindow<C: ViewModelUIContainer, V: View>: ViewModifier
         content.onChange(of: viewModelUI) { viewModelUI in
             if let viewModelUI {
                 id = viewModelUI.id
-                ViewModelUIContainers.add(viewModelUI)
+                ViewModelUIRegistry.add(viewModelUI)
                 openWindow(id: C.Nsp.ViewModel.viewModelDefaultKey, value: viewModelUI.id)
             }
             else {
                 if let id {
-                    ViewModelUIContainers.remove(id: id)
+                    ViewModelUIRegistry.remove(id: id)
                 }
             }
         }
@@ -102,9 +102,9 @@ public struct FullScreenOrWindow<C: ViewModelUIContainer, V: View>: ViewModifier
         }
         .onDisappear {
             id = nil
-            viewModelUI?.viewModel.cancel()
+            viewModelUI?.cancel()
         }
-        .transformEnvironment(\.dismissModalWindow) { action in
+        .transformEnvironment(\.dismissModalWindowAction) { action in
             if let prevAction = action {
                 action = {
                     prevAction()
@@ -161,7 +161,7 @@ public struct WindowContentView<C: ViewModelUIContainer>: View {
     
     @MainActor
     public init(id: UUID?) {
-        self.viewModelUI = id.flatMap { ViewModelUIContainers.get(id: $0) }
+        self.viewModelUI = id.flatMap { ViewModelUIRegistry.get(id: $0) }
     }
     
     public var body: some View {
@@ -181,3 +181,4 @@ extension ViewModelUINamespace {
         }
     }
 }
+

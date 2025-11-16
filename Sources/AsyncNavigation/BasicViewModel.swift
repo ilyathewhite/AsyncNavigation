@@ -100,7 +100,7 @@ extension BasicViewModel {
     /// Returns a child store with a specific `key`.
     ///
     /// A child store should not be saved in `@State` or `@ObjectState` of a view because that creates a retain cycle:
-    /// View State -> Store -> Store Environmemnt -> View State or
+    /// View State -> Store -> Store Environment -> View State or
     /// Child View State -> Child Store -> Child Store Environment -> Child View State
     /// The retain cycle is there even with @ObservedObject because then SwiftUI View State still adds a reference to
     /// the store.
@@ -238,3 +238,4 @@ public extension BasicViewModel {
             .eraseToAnyPublisher()
     }
 }
+

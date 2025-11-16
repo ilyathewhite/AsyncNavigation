@@ -107,15 +107,16 @@ public extension View {
 
     @MainActor
     func fullScreenOrWindow<V1: View, C: ViewModelUIContainer, V2: View>(
-        contentView: V1,
+        _ view: V1,
         _ keyPath: KeyPath<V1, C?>,
         isModal: Bool = true,
         content: @escaping () -> V2
     ) -> some View {
-        fullScreenOrWindow(isPresented: contentView.showUI(keyPath), viewModelUI: contentView[keyPath: keyPath]) {
+        fullScreenOrWindow(isPresented: view.showUI(keyPath), viewModelUI: view[keyPath: keyPath]) {
             content()
         }
     }
 }
 
 #endif
+

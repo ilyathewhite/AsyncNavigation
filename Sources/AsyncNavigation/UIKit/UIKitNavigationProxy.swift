@@ -8,14 +8,14 @@
 #if canImport(UIKit)
 import UIKit
 
-class NavigationUIKitProxy: NavigationProxy {
+class UIKitNavigationProxy: NavigationProxy {
     static func hostingVC<T: ViewModelUIContainer>(_ viewModelUI: T) -> UIViewController {
         HostingController<T>(viewModel: viewModelUI.viewModel)
     }
 
     private var nc: UINavigationController
 
-    public init(_ nc: UINavigationController) {
+    init(_ nc: UINavigationController) {
         self.nc = nc
     }
 
@@ -23,13 +23,13 @@ class NavigationUIKitProxy: NavigationProxy {
         nc.viewControllers.count - 1
     }
 
-    public func push<Nsp: ViewModelUINamespace>(_ viewModelUI: ViewModelUI<Nsp>) -> Int {
+    func push<Nsp: ViewModelUINamespace>(_ viewModelUI: ViewModelUI<Nsp>) -> Int {
         let vc = Self.hostingVC(viewModelUI)
         nc.pushViewController(vc, animated: true)
         return nc.viewControllers.count - 1
     }
 
-    public func replaceTop<Nsp: ViewModelUINamespace>(with viewModelUI: ViewModelUI<Nsp>) -> Int {
+    func replaceTop<Nsp: ViewModelUINamespace>(with viewModelUI: ViewModelUI<Nsp>) -> Int {
         guard !nc.viewControllers.isEmpty else { return -1 }
         let vc = Self.hostingVC(viewModelUI)
         nc.viewControllers[nc.viewControllers.count - 1] = vc

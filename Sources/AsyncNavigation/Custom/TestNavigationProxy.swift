@@ -1,5 +1,5 @@
 //
-//  NavigationTestProxy.swift
+//  TestNavigationProxy.swift
 //  ReducerArchitecture
 //
 //  Created by Ilya Belenkiy on 11/3/25.
@@ -9,7 +9,7 @@ import Foundation
 import Combine
 import CombineEx
 
-public class NavigationTestProxy: NavigationProxy {
+public class TestNavigationProxy: NavigationProxy {
     class PlaceholderViewModel: BasicViewModel {
         var publishedValue: PassthroughSubject<Void, Cancel> = .init()
 
