@@ -143,7 +143,6 @@ public struct WindowContentView<C: ViewModelUIContainer>: View {
         let viewModelUI: C
         @Environment(\.dismiss) private var dismiss
         
-        @MainActor
         public init(viewModelUI: C) {
             self.viewModelUI = viewModelUI
         }
@@ -159,7 +158,6 @@ public struct WindowContentView<C: ViewModelUIContainer>: View {
         }
     }
     
-    @MainActor
     public init(id: UUID?) {
         self.viewModelUI = id.flatMap { ViewModelUIRegistry.get(id: $0) }
     }
@@ -172,7 +170,6 @@ public struct WindowContentView<C: ViewModelUIContainer>: View {
 }
 
 extension ViewModelUINamespace {
-    @MainActor
     public static func windowGroup()
     -> WindowGroup<PresentedWindowContent<UUID, WindowContentView<ViewModelUI<Self>>>>
     {

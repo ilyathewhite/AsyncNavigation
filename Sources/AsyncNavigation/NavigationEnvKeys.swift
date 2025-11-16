@@ -21,7 +21,6 @@ public extension EnvironmentValues {
 public struct NavigationPathStack: Equatable {
     public let value: [any ViewModelUIContainer]
 
-    @MainActor
     public static func ==(lhs: NavigationPathStack, rhs: NavigationPathStack) -> Bool {
         lhs.value.map { $0.id } == rhs.value.map { $0.id }
     }

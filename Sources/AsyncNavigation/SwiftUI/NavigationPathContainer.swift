@@ -7,7 +7,6 @@
 
 import SwiftUI
 
-@MainActor
 class NavigationPathContainer: ObservableObject, NavigationProxy {
     var root: (any ViewModelUIContainer)?
     private(set) var stack: [any ViewModelUIContainer] = []

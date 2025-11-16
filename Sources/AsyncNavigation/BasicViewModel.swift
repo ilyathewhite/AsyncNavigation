@@ -34,10 +34,12 @@ public protocol BasicViewModel: ObservableObject, Hashable, Identifiable {
 }
 
 public extension BasicViewModel {
+    nonisolated
     static func == (lhs: Self, rhs: Self) -> Bool {
         lhs === rhs
     }
 
+    nonisolated
     func hash(into hasher: inout Hasher) {
         id.hash(into: &hasher)
     }

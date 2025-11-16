@@ -9,7 +9,6 @@
 import SwiftUI
 
 public extension View {
-    @MainActor
     func showUI<C: ViewModelUIContainer>(_ keyPath: KeyPath<Self, C?>) -> Binding<Bool> {
         .init(
             get: {
@@ -45,7 +44,6 @@ public extension View {
     ///    await store.run(editStore)
     /// }
     ///```
-    @MainActor
     func sheet<C: ViewModelUIContainer, V1: View, V2: View>(
         _ view: V1,
         _ keyPath: KeyPath<V1, C?>,
@@ -105,7 +103,6 @@ public extension View {
         )
     }
 
-    @MainActor
     func fullScreenOrWindow<V1: View, C: ViewModelUIContainer, V2: View>(
         _ view: V1,
         _ keyPath: KeyPath<V1, C?>,
@@ -119,4 +116,3 @@ public extension View {
 }
 
 #endif
-

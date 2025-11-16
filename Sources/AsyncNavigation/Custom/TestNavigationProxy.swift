@@ -32,11 +32,11 @@ public class TestNavigationProxy: NavigationProxy {
         var children: [String : any BasicViewModel] = [:]
     }
 
-    @MainActor
     public struct ViewModelInfo {
         public let timeIndex: Int
         public let viewModel: any BasicViewModel
 
+        @MainActor
         static let placeholder = Self.init(timeIndex: -1, viewModel: PlaceholderViewModel())
     }
 
@@ -52,7 +52,6 @@ public class TestNavigationProxy: NavigationProxy {
     /// Returns the viewModel of a particular type for a given time index.
     ///
     /// Used only for testing.
-    @MainActor
     public func getViewModel<Nsp: ViewModelUINamespace>(_ type: Nsp.Type, _ timeIndex: inout Int) async throws -> Nsp.ViewModel {
         let value = await currentViewModelPublisher.values.first(where: { $0.timeIndex == timeIndex })
         guard let viewModel = value?.viewModel as? Nsp.ViewModel else {
@@ -65,7 +64,6 @@ public class TestNavigationProxy: NavigationProxy {
     /// Returns the viewModel of a particular type for a given time index.
     ///
     /// Used only for testing.
-    @MainActor
     public func getViewModel<T: BasicViewModel>(_ type: T.Type, _ timeIndex: inout Int) async throws -> T {
         let value = await currentViewModelPublisher.values.first(where: { $0.timeIndex == timeIndex })
         guard let viewModel = value?.viewModel as? T else {

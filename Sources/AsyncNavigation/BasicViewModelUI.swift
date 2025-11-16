@@ -7,6 +7,7 @@
 
 import SwiftUI
 
+@MainActor
 public protocol ViewModelContentView: View {
     associatedtype ViewModel: BasicViewModel
     init(_ viewModel: ViewModel)
@@ -17,7 +18,6 @@ public protocol ViewModelUINamespace {
     associatedtype ViewModel: BasicViewModel where ViewModel == ContentView.ViewModel
 }
 
-@MainActor
 public protocol ViewModelUIContainer: Hashable, Identifiable {
     associatedtype Nsp: ViewModelUINamespace
     var viewModel: Nsp.ViewModel { get }
@@ -25,6 +25,7 @@ public protocol ViewModelUIContainer: Hashable, Identifiable {
 }
 
 extension ViewModelUIContainer {
+    @MainActor
     public func makeView() -> some View {
         Nsp.ContentView(viewModel).id(viewModel.id)
     }
@@ -34,7 +35,6 @@ extension ViewModelUIContainer {
         AnyView(makeView())
     }
 
-    @MainActor
     public var id: UUID {
         viewModel.id
     }
@@ -44,7 +44,6 @@ extension ViewModelUIContainer {
         viewModel.value
     }
 
-    @MainActor
     public var anyViewModel: any BasicViewModel {
         viewModel
     }
@@ -58,7 +57,7 @@ extension ViewModelUIContainer {
 public struct ViewModelUI<Nsp: ViewModelUINamespace>: ViewModelUIContainer {
     public let viewModel: Nsp.ViewModel
 
-    public static func == (lhs: ViewModelUI, rhs: ViewModelUI) -> Bool {
+    nonisolated public static func == (lhs: ViewModelUI, rhs: ViewModelUI) -> Bool {
         lhs.viewModel === rhs.viewModel
     }
 
