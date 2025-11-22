@@ -14,7 +14,6 @@ public protocol BasicViewModel: ObservableObject, Hashable, Identifiable {
     associatedtype PublishedValue
 
     nonisolated var id: UUID { get }
-    nonisolated var name: String { get }
     var isCancelled: Bool { get }
     var publishedValue: PassthroughSubject<PublishedValue, Cancel> { get }
     func publish(_ value: PublishedValue)
