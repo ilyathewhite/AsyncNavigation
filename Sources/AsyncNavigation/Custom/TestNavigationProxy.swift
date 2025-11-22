@@ -110,7 +110,7 @@ public class TestNavigationProxy: NavigationProxy {
         return stack.count - 1
     }
 
-    public func popTo(_ index: Int) {
+    public func pop(to index: Int) {
         guard -1 <= index, index < stack.count else {
             assertionFailure()
             return

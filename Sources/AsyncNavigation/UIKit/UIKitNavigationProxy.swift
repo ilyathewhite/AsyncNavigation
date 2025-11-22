@@ -36,7 +36,7 @@ class UIKitNavigationProxy: NavigationProxy {
         return nc.viewControllers.count - 1
     }
 
-    func popTo(_ index: Int) {
+    func pop(to index: Int) {
         let vc = nc.viewControllers[index]
         nc.popToViewController(vc, animated: true)
     }

@@ -54,7 +54,7 @@ class NavigationPathContainer: ObservableObject, NavigationProxy {
         return push(viewModelUI)
     }
 
-    func popTo(_ index: Int) {
+    func pop(to index: Int) {
         assert(path.count == stack.count)
         isInternalChange = true
         defer {
