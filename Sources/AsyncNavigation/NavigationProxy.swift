@@ -21,12 +21,16 @@ public protocol NavigationProxy {
     func replaceTop<Nsp: ViewModelUINamespace>(with viewModelUI: ViewModelUI<Nsp>) -> Int
 
     /// Pops the navigation stack to the component at `index`.
-    func popTo(_ index: Int) -> Void
+    func pop(to index: Int) -> Void
 }
 
 @MainActor
 public extension NavigationProxy {
     func pop() {
-        popTo(currentIndex - 1)
+        pop(to: currentIndex - 1)
+    }
+
+    func popToRoot() {
+        pop(to: -1)
     }
 }
