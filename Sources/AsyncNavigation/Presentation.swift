@@ -78,7 +78,7 @@ public extension View {
     ///)
     func taskAlert<R, S: StringProtocol, A: View, M: View>(
         _ title: S,
-        _ continuation: Binding<CheckedContinuation<R, Never>?>,
+        _ continuation: Binding<CheckedContinuation<R, Error>?>,
         @ViewBuilder actions: (@escaping (R) -> Void) -> A,
         @ViewBuilder message: () -> M
     ) -> some View {
@@ -89,9 +89,10 @@ public extension View {
                 set: { value in if !value { continuation.wrappedValue = nil } }
             ),
             actions: {
-                if let continuation = continuation.wrappedValue {
+                if let wrappedContinuation = continuation.wrappedValue {
                     actions { result in
-                        continuation.resume(returning: result)
+                        continuation.wrappedValue = nil
+                        wrappedContinuation.resume(returning: result)
                     }
                 }
                 else {
@@ -101,6 +102,12 @@ public extension View {
             },
             message: message
         )
+        .onDisappear {
+            if let wrappedContinuation = continuation.wrappedValue {
+                continuation.wrappedValue = nil
+                wrappedContinuation.resume(throwing: CancellationError())
+            }
+        }
     }
 
     func fullScreenOrWindow<V1: View, C: ViewModelUIContainer, V2: View>(
