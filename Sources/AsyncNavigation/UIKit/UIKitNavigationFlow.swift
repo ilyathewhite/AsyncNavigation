@@ -32,7 +32,8 @@ public class HostingController<T: ViewModelUIContainer>: UIHostingController<T.N
 
 /// Same as NavigationFlow, but uses UINavigationController for navigation.
 ///
-/// This is a workaround for nested navigation stacks that don't seem to be supported in SwiftUI right now.
+/// This is a workaround for nested navigation stacks that don't seem to be
+/// supported in SwiftUI right now.
 public struct UIKitNavigationFlow<Nsp: ViewModelUINamespace>: View {
     public typealias RootViewModel = Nsp.ViewModel
     public let root: RootViewModel
@@ -83,6 +84,3 @@ struct UIKitNavigationFlowImpl<Nsp: ViewModelUINamespace>: UIViewControllerRepre
 }
 
 #endif
-
-
-

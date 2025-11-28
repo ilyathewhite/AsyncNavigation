@@ -49,7 +49,7 @@ public class TestNavigationProxy: NavigationProxy {
 
     public init() {}
 
-    /// Returns the viewModel of a particular type for a given time index.
+    /// Returns the view model of a particular type for a given time index.
     ///
     /// Used only for testing.
     public func getViewModel<Nsp: ViewModelUINamespace>(_ type: Nsp.Type, _ timeIndex: inout Int) async throws -> Nsp.ViewModel {
@@ -61,7 +61,7 @@ public class TestNavigationProxy: NavigationProxy {
         return viewModel
     }
 
-    /// Returns the viewModel of a particular type for a given time index.
+    /// Returns the view model of a particular type for a given time index.
     ///
     /// Used only for testing.
     public func getViewModel<T: BasicViewModel>(_ type: T.Type, _ timeIndex: inout Int) async throws -> T {

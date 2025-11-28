@@ -63,4 +63,3 @@ public extension View {
         self.modifier(AddNavigation(type: type))
     }
 }
-
