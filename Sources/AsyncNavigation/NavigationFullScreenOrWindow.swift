@@ -50,7 +50,7 @@ public extension EnvironmentValues {
 
 #endif
 
-public struct FullScreenOrWindow<C: ViewModelUIContainer, V: View>: ViewModifier {
+struct FullScreenOrWindow<C: ViewModelUIContainer, V: View>: ViewModifier {
 #if os(macOS)
     @Environment(\.openWindow) private var openWindow
     @State private var id: UUID?
@@ -67,14 +67,14 @@ public struct FullScreenOrWindow<C: ViewModelUIContainer, V: View>: ViewModifier
     }
 #endif
     
-    public init(isPresented: Binding<Bool>, viewModelUI: C?, isModal: Bool, content: @escaping () -> V?) {
+    init(isPresented: Binding<Bool>, viewModelUI: C?, isModal: Bool, content: @escaping () -> V?) {
         self.isPresented = isPresented
         self.viewModelUI = viewModelUI
         self.isModal = isModal
         self.presentedContent = content
     }
 
-    public func body(content: Content) -> some View {
+    func body(content: Content) -> some View {
 #if os(iOS)
         content.fullScreenCover(isPresented: isPresented, content: presentedContent)
 #else
@@ -125,6 +125,10 @@ public struct FullScreenOrWindow<C: ViewModelUIContainer, V: View>: ViewModifier
 }
 
 extension View {
+    /// On iOS, this is the same as `fullScreenCover`. On macOS, this shows
+    /// `viewModelUI` in a separate window.
+    /// If the presentation is modal (the default), the presenting view has
+    /// a semi-transparent cover. Tapping that cover closes the window.
     public func fullScreenOrWindow<C: ViewModelUIContainer, V: View>(
         isPresented: Binding<Bool>,
         viewModelUI: C?,
@@ -136,6 +140,10 @@ extension View {
     }
 }
 
+/// The view-model content view for a window.
+///
+/// - Note: When `viewModelUI` is cancelled, the window is closed using the
+/// standard `dismiss` action from the SwiftUI environment.
 public struct WindowContentView<C: ViewModelUIContainer>: View {
     let viewModelUI: C?
     
@@ -170,6 +178,7 @@ public struct WindowContentView<C: ViewModelUIContainer>: View {
 }
 
 extension ViewModelUINamespace {
+    // A window group for the UI namespace.
     public static func windowGroup()
     -> WindowGroup<PresentedWindowContent<UUID, WindowContentView<ViewModelUI<Self>>>>
     {
