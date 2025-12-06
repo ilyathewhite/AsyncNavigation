@@ -290,10 +290,18 @@ public extension BasicViewModel {
         publish(value)
     }
 
+    func publish(_ value: PublishedValue) {
+        _publish(value)
+    }
+
     /// An implementation of this protocol should call this function as part of
     /// `publish`.
     func _publish(_ value: PublishedValue) {
         publishedValue.send(value)
+    }
+
+    func cancel() {
+        _cancel()
     }
 
     /// An implementation of this protocol should call this function as part of
