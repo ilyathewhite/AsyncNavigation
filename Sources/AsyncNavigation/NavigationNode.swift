@@ -94,3 +94,10 @@ public struct NavigationNode<Nsp: ViewModelUINamespace> {
     }
 }
 
+public struct RootNavigationNode<Nsp: ViewModelUINamespace> {
+    let root: Nsp.ViewModel
+
+    public init(_ root: Nsp.ViewModel) {
+        self.root = root
+    }
+}

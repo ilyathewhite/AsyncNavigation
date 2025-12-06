@@ -39,8 +39,8 @@ public struct UIKitNavigationFlow<Nsp: ViewModelUINamespace>: View {
     public let root: RootViewModel
     public let run: (RootViewModel.PublishedValue, _ proxy: NavigationProxy) async -> Void
 
-    public init(root: RootViewModel, run: @escaping (RootViewModel.PublishedValue, _ proxy: NavigationProxy) async -> Void) {
-        self.root = root
+    public init(_ rootNode: RootNavigationNode<Nsp>, run: @escaping (RootViewModel.PublishedValue, _: NavigationProxy) async -> Void) {
+        self.root = rootNode.root
         self.run = run
     }
 

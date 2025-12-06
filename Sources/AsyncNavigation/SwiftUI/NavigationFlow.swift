@@ -14,8 +14,8 @@ public struct NavigationFlow<Nsp: ViewModelUINamespace>: View {
 
     @StateObject private var pathContainer = NavigationPathContainer()
 
-    public init(root: RootViewModel, run: @escaping (RootViewModel.PublishedValue, _: NavigationProxy) async -> Void) {
-        self.root = root
+    public init(_ rootNode: RootNavigationNode<Nsp>, run: @escaping (RootViewModel.PublishedValue, _: NavigationProxy) async -> Void) {
+        self.root = rootNode.root
         self.run = run
     }
 
