@@ -22,15 +22,15 @@ public protocol NavigationProxy {
 
     /// Pops the navigation stack to the component at `index`.
     func pop(to index: Int) -> Void
+
+    /// Pops all elements from the navigation stack so that
+    /// the root component becomes active
+    func popToRoot()
 }
 
 @MainActor
 public extension NavigationProxy {
     func pop() {
         pop(to: currentIndex - 1)
-    }
-
-    func popToRoot() {
-        pop(to: -1)
     }
 }

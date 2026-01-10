@@ -111,7 +111,7 @@ public class TestNavigationProxy: NavigationProxy {
     }
 
     public func pop(to index: Int) {
-        guard -1 <= index, index < stack.count else {
+        guard 0 <= index, index < stack.count else {
             assertionFailure()
             return
         }
@@ -129,5 +129,8 @@ public class TestNavigationProxy: NavigationProxy {
 
         updateCurrentViewModel()
     }
-}
 
+    public func popToRoot() {
+        pop(to: 0)
+    }
+}

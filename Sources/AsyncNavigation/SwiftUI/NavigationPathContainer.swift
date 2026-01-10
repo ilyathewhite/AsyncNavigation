@@ -78,4 +78,9 @@ class NavigationPathContainer: ObservableObject, NavigationProxy {
             value.cancel()
         }
     }
+
+    func popToRoot() {
+        // remove all components so that the content view in NavigationStack becomes active
+        pop(to: -1)
+    }
 }

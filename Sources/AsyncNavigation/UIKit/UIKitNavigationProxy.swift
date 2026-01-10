@@ -40,6 +40,10 @@ class UIKitNavigationProxy: NavigationProxy {
         let vc = nc.viewControllers[index]
         nc.popToViewController(vc, animated: true)
     }
+
+    func popToRoot() {
+        nc.popToRootViewController(animated: true)
+    }
 }
 
 #endif
