@@ -290,6 +290,14 @@ public extension BasicViewModel {
         publish(value)
     }
 
+    /// A convenience API, useful for testing.
+    func cancelOnRequest() async {
+        while !hasRequest {
+            await Task.yield()
+        }
+        cancel()
+    }
+
     func publish(_ value: PublishedValue) {
         _publish(value)
     }
