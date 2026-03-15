@@ -87,10 +87,15 @@ extension BasicViewModel where Self.ObjectWillChangePublisher == ObservableObjec
 extension BasicViewModel {
     /// Adds a child to the view model. The view model must not already contain a
     /// child with the provided `key`.
-    public func addChild<VM: BasicViewModel>(_ child: VM, key: String = VM.viewModelDefaultKey) {
+    public func addChild<VM: BasicViewModel>(
+        _ child: VM,
+        key: String = VM.viewModelDefaultKey,
+        didAddChild: ((_ child: VM, _ key: String) -> Void)? = nil
+    ) {
         assert(children[key] == nil)
         sendObjectWillChange()
         children[key] = child
+        didAddChild?(child, key)
     }
 
     /// Removes a child from the view model. If not `nil`, `child` must be a child
@@ -125,9 +130,13 @@ extension BasicViewModel {
     /// Adds a child to the view model. If the view model already contains a
     /// child with the provided `key`, the child view model expression is not
     /// evaluated.
-    public func addChildIfNeeded<VM: BasicViewModel>(_ child: @autoclosure () -> VM, key: String = VM.viewModelDefaultKey) {
+    public func addChildIfNeeded<VM: BasicViewModel>(
+        _ child: @autoclosure () -> VM,
+        key: String = VM.viewModelDefaultKey,
+        didAddChild: ((_ child: VM, _ key: String) -> Void)? = nil
+    ) {
         if children[key] == nil {
-            addChild(child())
+            addChild(child(), key: key, didAddChild: didAddChild)
         }
     }
 
@@ -181,8 +190,12 @@ extension BasicViewModel {
     }
 
     /// Runs a child view model until it produces the first value.
-    public func run<VM: BasicViewModel>(_ child: VM, key: String = VM.viewModelDefaultKey) async throws -> VM.PublishedValue {
-        addChild(child, key: key)
+    public func run<VM: BasicViewModel>(
+        _ child: VM,
+        key: String = VM.viewModelDefaultKey,
+        didAddChild: ((_ child: VM, _ key: String) -> Void)? = nil
+    ) async throws -> VM.PublishedValue {
+        addChild(child, key: key, didAddChild: didAddChild)
         defer { removeChild(child) }
         return try await child.firstValue()
     }
@@ -328,4 +341,3 @@ public extension BasicViewModel {
             .eraseToAnyPublisher()
     }
 }
-
