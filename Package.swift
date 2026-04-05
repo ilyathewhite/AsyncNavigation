@@ -28,6 +28,10 @@ let package = Package(
 //                    "-warn-long-expression-type-checking=100"
 //                ])
             ]
+        ),
+        .testTarget(
+            name: "AsyncNavigationTests",
+            dependencies: ["AsyncNavigation", "CombineEx"]
         )
     ]
 )
