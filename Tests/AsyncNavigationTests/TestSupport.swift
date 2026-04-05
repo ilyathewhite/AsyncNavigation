@@ -3,6 +3,10 @@ import Foundation
 import SwiftUI
 import Combine
 import CombineEx
+import Testing
+
+@Suite
+enum AsyncNavigationTestSuites {}
 
 @MainActor
 final class TestStringViewModel: BaseViewModel<String> {
@@ -98,6 +102,23 @@ func flushMainQueue() async {
             continuation.resume()
         }
     }
+}
+
+@MainActor
+func waitUntil(
+    timeout: TimeInterval = 1,
+    pollIntervalNanoseconds: UInt64 = 10_000_000,
+    condition: @escaping @MainActor () -> Bool
+) async -> Bool {
+    let deadline = Date().addingTimeInterval(timeout)
+    while !condition() {
+        if deadline <= Date() {
+            return false
+        }
+        await flushMainQueue()
+        try? await Task.sleep(nanoseconds: pollIntervalNanoseconds)
+    }
+    return true
 }
 
 @MainActor

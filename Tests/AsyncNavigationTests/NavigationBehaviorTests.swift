@@ -1,10 +1,15 @@
 import SwiftUI
-import XCTest
+import Testing
 @testable import AsyncNavigation
 
-final class NavigationBehaviorTests: XCTestCase {
+extension AsyncNavigationTestSuites {
     @MainActor
-    func testNavigationNodeThenPushesViewModelAndPassesPublishedValue() async throws {
+    @Suite struct NavigationBehaviorTests {}
+}
+
+extension AsyncNavigationTestSuites.NavigationBehaviorTests {
+    @Test
+    func navigationNodeThenPushesViewModelAndPassesPublishedValue() async throws {
         let proxy = TestNavigationProxy()
         let viewModel = TestStringViewModel(name: "details")
         let node = NavigationNode<StringNamespace>(viewModel, proxy)
@@ -23,20 +28,19 @@ final class NavigationBehaviorTests: XCTestCase {
 
         do {
             try await task.value
-            XCTFail("Expected the callback error to escape")
-        }
-        catch {
-            XCTAssertEqual(error as? TestError, .boom)
+            Issue.record("Expected the callback error to escape")
+        } catch {
+            #expect(error as? TestError == .boom)
         }
 
-        XCTAssertEqual(receivedValue, "open")
-        XCTAssertEqual(receivedIndex, 0)
-        XCTAssertEqual(proxy.currentIndex, 0)
-        XCTAssertTrue(proxy.stack.last?.anyViewModel === viewModel)
+        #expect(receivedValue == "open")
+        #expect(receivedIndex == 0)
+        #expect(proxy.currentIndex == 0)
+        #expect(proxy.stack.last?.anyViewModel === viewModel)
     }
 
-    @MainActor
-    func testNavigationNodeThenReplacingTopCancelsPreviousViewModel() async {
+    @Test
+    func navigationNodeThenReplacingTopCancelsPreviousViewModel() async {
         let proxy = TestNavigationProxy()
         let original = TestStringViewModel(name: "original")
         let replacement = TestStringViewModel(name: "replacement")
@@ -56,15 +60,15 @@ final class NavigationBehaviorTests: XCTestCase {
         await replacement.publishOnRequest("next")
         await task.value
 
-        XCTAssertTrue(original.isCancelled)
-        XCTAssertEqual(receivedValue, "next")
-        XCTAssertEqual(receivedIndex, 0)
-        XCTAssertEqual(proxy.stack.count, 1)
-        XCTAssertTrue(proxy.stack.last?.anyViewModel === replacement)
+        #expect(original.isCancelled)
+        #expect(receivedValue == "next")
+        #expect(receivedIndex == 0)
+        #expect(proxy.stack.count == 1)
+        #expect(proxy.stack.last?.anyViewModel === replacement)
     }
 
-    @MainActor
-    func testTestNavigationProxyPublishesViewModelsByTimeIndexAndSupportsBackAction() async throws {
+    @Test
+    func testNavigationProxyPublishesViewModelsByTimeIndexAndSupportsBackAction() async throws {
         let proxy = TestNavigationProxy()
         let first = TestStringViewModel(name: "first")
         let second = TestIntViewModel(seed: 2)
@@ -72,74 +76,73 @@ final class NavigationBehaviorTests: XCTestCase {
         _ = proxy.push(ViewModelUI<StringNamespace>(first))
         _ = proxy.push(ViewModelUI<IntNamespace>(second))
 
-        XCTAssertEqual(proxy.currentIndex, 1)
+        #expect(proxy.currentIndex == 1)
 
         proxy.backAction()
 
-        XCTAssertEqual(proxy.currentIndex, 0)
-        XCTAssertTrue(second.isCancelled)
+        #expect(proxy.currentIndex == 0)
+        #expect(second.isCancelled)
 
         let currentTimeIndex = proxy.currentViewModelPublisher.value.timeIndex
         var timeIndex = currentTimeIndex
         let currentViewModel = try await proxy.getViewModel(StringNamespace.self, &timeIndex)
 
-        XCTAssertTrue(currentViewModel === first)
-        XCTAssertEqual(timeIndex, currentTimeIndex + 1)
+        #expect(currentViewModel === first)
+        #expect(timeIndex == currentTimeIndex + 1)
 
         var mismatchIndex = currentTimeIndex
 
         do {
             _ = try await proxy.getViewModel(TestIntViewModel.self, &mismatchIndex)
-            XCTFail("Expected a type mismatch error")
-        }
-        catch {
-            XCTAssertEqual(error as? TestNavigationProxy.CurrentViewModelError, .typeMismatch)
+            Issue.record("Expected a type mismatch error")
+        } catch {
+            #expect(error as? TestNavigationProxy.CurrentViewModelError == .typeMismatch)
         }
     }
 
-    @MainActor
-    func testNavigationPathContainerPushReplacePopAndExternalPathChangesCancelViewModels() {
+    @Test
+    func navigationPathContainerPushReplacePopAndExternalPathChangesCancelViewModels() {
         let container = NavigationPathContainer()
         let first = TestStringViewModel(name: "first")
         let second = TestStringViewModel(name: "second")
         let third = TestStringViewModel(name: "third")
         let replacement = TestStringViewModel(name: "replacement")
 
-        XCTAssertEqual(container.currentIndex, -1)
+        #expect(container.currentIndex == -1)
 
         _ = container.push(ViewModelUI<StringNamespace>(first))
         _ = container.push(ViewModelUI<StringNamespace>(second))
 
-        XCTAssertEqual(container.currentIndex, 1)
-        XCTAssertEqual(container.path.count, 2)
+        #expect(container.currentIndex == 1)
+        #expect(container.path.count == 2)
 
         _ = container.replaceTop(with: ViewModelUI<StringNamespace>(third))
 
-        XCTAssertTrue(second.isCancelled)
-        XCTAssertEqual(container.currentIndex, 1)
-        XCTAssertTrue(container.stack.last?.anyViewModel === third)
+        #expect(second.isCancelled)
+        #expect(container.currentIndex == 1)
+        #expect(container.stack.last?.anyViewModel === third)
 
         container.pop(to: 0)
 
-        XCTAssertTrue(third.isCancelled)
-        XCTAssertEqual(container.currentIndex, 0)
-        XCTAssertEqual(container.path.count, 1)
+        #expect(third.isCancelled)
+        #expect(container.currentIndex == 0)
+        #expect(container.path.count == 1)
 
         _ = container.push(ViewModelUI<StringNamespace>(replacement))
         container.path = NavigationPath()
 
-        XCTAssertTrue(first.isCancelled)
-        XCTAssertTrue(replacement.isCancelled)
-        XCTAssertEqual(container.stack.count, 0)
-        XCTAssertEqual(container.path.count, 0)
+        #expect(first.isCancelled)
+        #expect(replacement.isCancelled)
+        #expect(container.stack.count == 0)
+        #expect(container.path.count == 0)
 
         _ = container.push(ViewModelUI<StringNamespace>(TestStringViewModel(name: "root")))
         container.popToRoot()
-        XCTAssertEqual(container.stack.count, 0)
+        #expect(container.stack.count == 0)
     }
 
-    @MainActor
-    func testNavigationProxyPopUsesCurrentIndex() {
+    @Test
+    func navigationProxyPopUsesCurrentIndex() {
         let proxy = TestNavigationProxy()
         let first = TestStringViewModel(name: "first")
         let second = TestStringViewModel(name: "second")
@@ -149,13 +152,13 @@ final class NavigationBehaviorTests: XCTestCase {
 
         proxy.pop()
 
-        XCTAssertTrue(second.isCancelled)
-        XCTAssertEqual(proxy.currentIndex, 0)
-        XCTAssertTrue(proxy.stack.last?.anyViewModel === first)
+        #expect(second.isCancelled)
+        #expect(proxy.currentIndex == 0)
+        #expect(proxy.stack.last?.anyViewModel === first)
     }
 
-    @MainActor
-    func testNavigationNodeNonThrowingVariantsAndPopToRoot() async throws {
+    @Test
+    func navigationNodeNonThrowingVariantsAndPopToRoot() async {
         let proxy = TestNavigationProxy()
         let first = TestStringViewModel(name: "first")
         let second = TestStringViewModel(name: "second")
@@ -185,29 +188,28 @@ final class NavigationBehaviorTests: XCTestCase {
 
         do {
             try await secondTask.value
-            XCTFail("Expected callback error to escape")
-        }
-        catch {
-            XCTAssertEqual(error as? TestError, .boom)
+            Issue.record("Expected callback error to escape")
+        } catch {
+            #expect(error as? TestError == .boom)
         }
 
         proxy.popToRoot()
 
-        XCTAssertEqual(firstReceived?.0, "value")
-        XCTAssertEqual(firstReceived?.1, 1)
-        XCTAssertEqual(secondReceived?.0, "replacement")
-        XCTAssertEqual(secondReceived?.1, 1)
-        XCTAssertEqual(proxy.currentIndex, 0)
-        XCTAssertTrue(proxy.stack.last?.anyViewModel === root)
+        #expect(firstReceived?.0 == "value")
+        #expect(firstReceived?.1 == 1)
+        #expect(secondReceived?.0 == "replacement")
+        #expect(secondReceived?.1 == 1)
+        #expect(proxy.currentIndex == 0)
+        #expect(proxy.stack.last?.anyViewModel === root)
     }
 
-    @MainActor
-    func testTestNavigationProxyPlaceholderAndTypedLookupBranches() async throws {
+    @Test
+    func testNavigationProxyPlaceholderAndTypedLookupBranches() async throws {
         let placeholder = TestNavigationProxy.PlaceholderViewModel()
         placeholder.publish(())
         placeholder.cancel()
 
-        XCTAssertTrue(placeholder.isCancelled)
+        #expect(placeholder.isCancelled)
 
         let proxy = TestNavigationProxy()
         let viewModel = TestStringViewModel(name: "tracked")
@@ -217,16 +219,15 @@ final class NavigationBehaviorTests: XCTestCase {
         var typedTimeIndex = currentTimeIndex
         let typedViewModel = try await proxy.getViewModel(TestStringViewModel.self, &typedTimeIndex)
 
-        XCTAssertTrue(typedViewModel === viewModel)
-        XCTAssertEqual(typedTimeIndex, currentTimeIndex + 1)
+        #expect(typedViewModel === viewModel)
+        #expect(typedTimeIndex == currentTimeIndex + 1)
 
         var mismatchTimeIndex = currentTimeIndex
         do {
             _ = try await proxy.getViewModel(IntNamespace.self, &mismatchTimeIndex)
-            XCTFail("Expected type mismatch for namespace lookup")
-        }
-        catch {
-            XCTAssertEqual(error as? TestNavigationProxy.CurrentViewModelError, .typeMismatch)
+            Issue.record("Expected type mismatch for namespace lookup")
+        } catch {
+            #expect(error as? TestNavigationProxy.CurrentViewModelError == .typeMismatch)
         }
     }
 }

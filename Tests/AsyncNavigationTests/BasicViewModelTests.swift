@@ -1,10 +1,15 @@
 import Combine
-import XCTest
+import Testing
 @testable import AsyncNavigation
 
-final class BasicViewModelTests: XCTestCase {
+extension AsyncNavigationTestSuites {
     @MainActor
-    func testFirstValueWaitsForRequestAndCancelsAfterReturning() async throws {
+    @Suite struct BasicViewModelTests {}
+}
+
+extension AsyncNavigationTestSuites.BasicViewModelTests {
+    @Test
+    func firstValueWaitsForRequestAndCancelsAfterReturning() async throws {
         let viewModel = TestStringViewModel(name: "root")
         let task = Task { @MainActor in
             try await viewModel.firstValue()
@@ -12,20 +17,20 @@ final class BasicViewModelTests: XCTestCase {
 
         await viewModel.getRequest()
 
-        XCTAssertTrue(viewModel.hasRequest)
+        #expect(viewModel.hasRequest)
 
         viewModel.publish("done")
 
         let receivedValue = try await task.value
 
-        XCTAssertEqual(receivedValue, "done")
-        XCTAssertFalse(viewModel.hasRequest)
-        XCTAssertTrue(viewModel.isCancelled)
-        XCTAssertEqual(viewModel.cancelCallCount, 1)
+        #expect(receivedValue == "done")
+        #expect(!viewModel.hasRequest)
+        #expect(viewModel.isCancelled)
+        #expect(viewModel.cancelCallCount == 1)
     }
 
-    @MainActor
-    func testCancelOnRequestThrowsAndMarksViewModelCancelled() async {
+    @Test
+    func cancelOnRequestThrowsAndMarksViewModelCancelled() async {
         let viewModel = TestStringViewModel(name: "cancellable")
         let task = Task { @MainActor in
             try await viewModel.firstValue()
@@ -35,15 +40,14 @@ final class BasicViewModelTests: XCTestCase {
 
         do {
             _ = try await task.value
-            XCTFail("Expected cancellation to throw")
-        }
-        catch {
-            XCTAssertTrue(viewModel.isCancelled)
+            Issue.record("Expected cancellation to throw")
+        } catch {
+            #expect(viewModel.isCancelled)
         }
     }
 
-    @MainActor
-    func testGetFirstReceivesPublishedValue() async throws {
+    @Test
+    func getFirstReceivesPublishedValue() async throws {
         let viewModel = TestStringViewModel(name: "sheet")
         var receivedValue: String?
 
@@ -56,11 +60,11 @@ final class BasicViewModelTests: XCTestCase {
         await viewModel.publishOnRequest("accepted")
         await task.value
 
-        XCTAssertEqual(receivedValue, "accepted")
+        #expect(receivedValue == "accepted")
     }
 
-    @MainActor
-    func testRunAddsAndRemovesChildViewModel() async throws {
+    @Test
+    func runAddsAndRemovesChildViewModel() async throws {
         let parent = TestStringViewModel(name: "parent")
         let child = TestIntViewModel(seed: 42)
         var addedKey: String?
@@ -78,14 +82,14 @@ final class BasicViewModelTests: XCTestCase {
 
         let storedChild: TestIntViewModel? = parent.child()
 
-        XCTAssertEqual(receivedValue, 42)
-        XCTAssertEqual(addedKey, TestIntViewModel.viewModelDefaultKey)
-        XCTAssertNil(storedChild)
-        XCTAssertTrue(child.isCancelled)
+        #expect(receivedValue == 42)
+        #expect(addedKey == TestIntViewModel.viewModelDefaultKey)
+        #expect(storedChild == nil)
+        #expect(child.isCancelled)
     }
 
-    @MainActor
-    func testAddChildIfNeededAvoidsConstructingDuplicateChild() async {
+    @Test
+    func addChildIfNeededAvoidsConstructingDuplicateChild() async {
         let parent = TestStringViewModel(name: "container")
         var constructionCount = 0
 
@@ -101,45 +105,43 @@ final class BasicViewModelTests: XCTestCase {
         let child: TestIntViewModel? = parent.child()
         let anyChild = parent.anyChild(key: TestIntViewModel.viewModelDefaultKey)
 
-        XCTAssertEqual(constructionCount, 1)
-        XCTAssertEqual(child?.seed, 1)
-        XCTAssertTrue(anyChild === child)
+        #expect(constructionCount == 1)
+        #expect(child?.seed == 1)
+        #expect(anyChild === child)
 
         parent.removeChild(nil, delay: false)
         parent.removeChild(child, delay: false)
 
         let removedChild: TestIntViewModel? = parent.child()
 
-        XCTAssertNil(removedChild)
-        XCTAssertTrue(child?.isCancelled ?? false)
+        #expect(removedChild == nil)
+        #expect(child?.isCancelled == true)
     }
 
-    @MainActor
-    func testIsCancelledPublisherEmitsWhenCancelled() async {
+    @Test
+    func isCancelledPublisherEmitsWhenCancelled() async {
         let viewModel = TestStringViewModel(name: "publisher")
-        let expectation = expectation(description: "cancellation event")
-        var cancellable: AnyCancellable?
-
-        cancellable = viewModel.isCancelledPublisher.sink {
-            expectation.fulfill()
+        var didEmit = false
+        let cancellable = viewModel.isCancelledPublisher.sink {
+            didEmit = true
         }
 
         viewModel.cancel()
 
-        await fulfillment(of: [expectation], timeout: 1)
+        #expect(await waitUntil { didEmit })
         withExtendedLifetime(cancellable) {}
     }
 
-    @MainActor
-    func testDefaultProtocolHelpersPublishCancelAndCompareIdentity() async throws {
+    @Test
+    func defaultProtocolHelpersPublishCancelAndCompareIdentity() async throws {
         let first = DefaultStringViewModel()
         let second = DefaultStringViewModel()
         let optionalFirst: DefaultStringViewModel? = first
 
-        XCTAssertEqual(first, first)
-        XCTAssertNotEqual(first, second)
-        XCTAssertEqual(first.hashValue, first.hashValue)
-        XCTAssertEqual(DefaultStringViewModel.viewModelDefaultKey, "DefaultStringViewModel")
+        #expect(first == first)
+        #expect(first != second)
+        #expect(first.hashValue == first.hashValue)
+        #expect(DefaultStringViewModel.viewModelDefaultKey == "DefaultStringViewModel")
 
         let firstValueTask = Task { @MainActor in
             try await first.firstValue()
@@ -147,7 +149,7 @@ final class BasicViewModelTests: XCTestCase {
 
         await first.publishOnRequest("value")
         let firstValue = try await firstValueTask.value
-        XCTAssertEqual(firstValue, "value")
+        #expect(firstValue == "value")
 
         let cancelTask = Task { @MainActor in
             try await second.firstValue()
@@ -157,17 +159,16 @@ final class BasicViewModelTests: XCTestCase {
 
         do {
             _ = try await cancelTask.value
-            XCTFail("Expected default cancellation to throw")
-        }
-        catch {
-            XCTAssertTrue(second.hasRequest)
+            Issue.record("Expected default cancellation to throw")
+        } catch {
+            #expect(second.hasRequest)
         }
 
-        XCTAssertNotNil(optionalFirst)
+        #expect(optionalFirst != nil)
     }
 
-    @MainActor
-    func testPublishedValueHelperVariantsProduceExpectedResults() async throws {
+    @Test
+    func publishedValueHelperVariantsProduceExpectedResults() async throws {
         let throwingViewModel = DefaultStringViewModel()
         let throwingTask = Task { @MainActor in
             var iterator = throwingViewModel.throwingAsyncValues.makeAsyncIterator()
@@ -176,42 +177,38 @@ final class BasicViewModelTests: XCTestCase {
 
         await throwingViewModel.publishOnRequest("throwing")
         let throwingValue = try await throwingTask.value
-        XCTAssertEqual(throwingValue, "throwing")
+        #expect(throwingValue == "throwing")
 
         let successViewModel = DefaultStringViewModel()
-        let resultExpectation = expectation(description: "value result success")
         var receivedSuccess: String?
         let successCancellable = successViewModel.valueResult.sink { result in
             if case .success(let value) = result {
                 receivedSuccess = value
-                resultExpectation.fulfill()
             }
         }
 
         await successViewModel.publishOnRequest("success")
-        await fulfillment(of: [resultExpectation], timeout: 1)
-        XCTAssertEqual(receivedSuccess, "success")
+        #expect(await waitUntil { receivedSuccess == "success" })
+        #expect(receivedSuccess == "success")
         withExtendedLifetime(successCancellable) {}
 
         let failureResultViewModel = DefaultStringViewModel()
-        let failureExpectation = expectation(description: "value result failure")
         var receivedFailure = false
         let failureCancellable = failureResultViewModel.valueResult.sink { result in
             if case .failure = result {
                 receivedFailure = true
-                failureExpectation.fulfill()
             }
         }
 
         await failureResultViewModel.cancelOnRequest()
-        await fulfillment(of: [failureExpectation], timeout: 1)
-        XCTAssertTrue(receivedFailure)
+        #expect(await waitUntil { receivedFailure })
+        #expect(receivedFailure)
         withExtendedLifetime(failureCancellable) {}
 
         let getFirstViewModel = DefaultStringViewModel()
         let failureTask = Task { @MainActor in
             try await getFirstViewModel.getFirst { value in
-                XCTAssertEqual(value, "failure")
+                #expect(value == "failure")
                 throw TestError.boom
             }
         }
@@ -219,16 +216,15 @@ final class BasicViewModelTests: XCTestCase {
         await getFirstViewModel.publishOnRequest("failure")
         do {
             try await failureTask.value
-            XCTFail("Expected getFirst to surface the callback error")
-        }
-        catch {
-            XCTAssertEqual(error as? TestError, .boom)
+            Issue.record("Expected getFirst to surface the callback error")
+        } catch {
+            #expect(error as? TestError == .boom)
         }
 
         let getViewModel = DefaultStringViewModel()
         let getTask = Task { @MainActor in
             try await getViewModel.get { value in
-                XCTAssertEqual(value, "ignored")
+                #expect(value == "ignored")
                 throw TestError.boom
             }
         }
@@ -236,10 +232,9 @@ final class BasicViewModelTests: XCTestCase {
         await getViewModel.publishOnRequest("ignored")
         do {
             _ = try await getTask.value
-            XCTFail("Expected get to surface the callback error")
-        }
-        catch {
-            XCTAssertEqual(error as? TestError, .boom)
+            Issue.record("Expected get to surface the callback error")
+        } catch {
+            #expect(error as? TestError == .boom)
         }
     }
 }

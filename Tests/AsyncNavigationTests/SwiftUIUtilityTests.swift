@@ -1,20 +1,25 @@
 import SwiftUI
-import XCTest
+import Testing
 @testable import AsyncNavigation
 
-final class SwiftUIUtilityTests: XCTestCase {
+extension AsyncNavigationTestSuites {
     @MainActor
-    func testViewModelUIMirrorsViewModelIdentityAndCancellation() {
+    @Suite struct SwiftUIUtilityTests {}
+}
+
+extension AsyncNavigationTestSuites.SwiftUIUtilityTests {
+    @Test
+    func viewModelUIMirrorsViewModelIdentityAndCancellation() {
         let viewModel = TestStringViewModel(name: "screen")
         let viewModelUI = ViewModelUI<StringNamespace>(viewModel)
         let duplicate = ViewModelUI<StringNamespace>(viewModel)
         let different = ViewModelUI<StringNamespace>(TestStringViewModel(name: "other"))
         let optionalViewModel: TestStringViewModel? = viewModel
 
-        XCTAssertEqual(viewModelUI.id, viewModel.id)
-        XCTAssertEqual(viewModelUI, duplicate)
-        XCTAssertNotEqual(viewModelUI, different)
-        XCTAssertTrue(viewModelUI.anyViewModel === viewModel)
+        #expect(viewModelUI.id == viewModel.id)
+        #expect(viewModelUI == duplicate)
+        #expect(viewModelUI != different)
+        #expect(viewModelUI.anyViewModel === viewModel)
         _ = viewModelUI.value
 
         _ = viewModelUI.makeView()
@@ -22,13 +27,13 @@ final class SwiftUIUtilityTests: XCTestCase {
 
         viewModelUI.cancel()
 
-        XCTAssertTrue(viewModel.isCancelled)
-        XCTAssertNotNil(ViewModelUI<StringNamespace>(optionalViewModel))
-        XCTAssertNil(ViewModelUI<StringNamespace>(nil))
+        #expect(viewModel.isCancelled)
+        #expect(ViewModelUI<StringNamespace>(optionalViewModel) != nil)
+        #expect(ViewModelUI<StringNamespace>(nil) == nil)
     }
 
-    @MainActor
-    func testNavigationEnvironmentValuesAndPreferenceKeyBehaveAsExpected() {
+    @Test
+    func navigationEnvironmentValuesAndPreferenceKeyBehaveAsExpected() {
         let first = ViewModelUI<StringNamespace>(TestStringViewModel(name: "first"))
         let sameIdentity = ViewModelUI<StringNamespace>(first.viewModel)
         let different = ViewModelUI<StringNamespace>(TestStringViewModel(name: "different"))
@@ -39,20 +44,20 @@ final class SwiftUIUtilityTests: XCTestCase {
         var environment = EnvironmentValues()
         var didCallBack = false
 
-        XCTAssertEqual(expectedStack, sameStack)
-        XCTAssertNotEqual(expectedStack, differentStack)
+        #expect(expectedStack == sameStack)
+        #expect(expectedStack != differentStack)
 
         NavigationPathStackKey.reduce(value: &reducedValue) { expectedStack }
         NavigationPathStackKey.reduce(value: &reducedValue) { differentStack }
 
-        XCTAssertEqual(reducedValue, expectedStack)
+        #expect(reducedValue == expectedStack)
 
         environment.backAction = {
             didCallBack = true
         }
         environment.backAction?()
 
-        XCTAssertTrue(didCallBack)
+        #expect(didCallBack)
 
 #if os(macOS)
         var didDismissWindow = false
@@ -61,12 +66,12 @@ final class SwiftUIUtilityTests: XCTestCase {
         }
         environment.dismissModalWindowAction?()
 
-        XCTAssertTrue(didDismissWindow)
+        #expect(didDismissWindow)
 #endif
     }
 
-    @MainActor
-    func testPresentationHelpersCanBeConstructedAndShowUICancelsOnDismiss() {
+    @Test
+    func presentationHelpersCanBeConstructedAndShowUICancelsOnDismiss() {
         let viewModel = TestStringViewModel(name: "sheet")
         let viewModelUI = ViewModelUI<StringNamespace>(viewModel)
         let hostView = TestHostView(childUI: viewModelUI)
@@ -78,12 +83,12 @@ final class SwiftUIUtilityTests: XCTestCase {
             set: { continuation = $0 }
         )
 
-        XCTAssertTrue(binding.wrappedValue)
-        XCTAssertFalse(noChildBinding.wrappedValue)
+        #expect(binding.wrappedValue)
+        #expect(!noChildBinding.wrappedValue)
 
         binding.wrappedValue = false
 
-        XCTAssertTrue(viewModel.isCancelled)
+        #expect(viewModel.isCancelled)
 
         _ = Text("Root").sheet(hostView, \.childUI) { viewModelUI in
             viewModelUI.makeView()
@@ -105,33 +110,31 @@ final class SwiftUIUtilityTests: XCTestCase {
         }
     }
 
-    @MainActor
-    func testNavigationFlowsAndWindowHelpersBuildViews() {
+    @Test
+    func navigationFlowsAndWindowHelpersBuildViews() {
         let root = TestStringViewModel(name: "root")
         let rootNode = RootNavigationNode<StringNamespace>(root)
         let flow = NavigationFlow(rootNode) { _, _ in }
 
         _ = flow.addNavigation(ViewModelUI<StringNamespace>(root))
-        _ = flow.body
         _ = Text("Root").addNavigation(StringNamespace.self)
 
 #if os(macOS)
         let modalViewModel = TestStringViewModel(name: "modal")
         let modalViewModelUI = ViewModelUI<StringNamespace>(modalViewModel)
-        let customFlow = CustomNavigationFlow(rootNode) { _, _ in }
+        _ = CustomNavigationFlow(rootNode) { _, _ in }
 
         ViewModelUIRegistry.add(modalViewModelUI)
         let storedViewModelUI: ViewModelUI<StringNamespace>? = ViewModelUIRegistry.get(id: modalViewModelUI.id)
 
-        XCTAssertTrue(storedViewModelUI?.viewModel === modalViewModel)
+        #expect(storedViewModelUI?.viewModel === modalViewModel)
 
         let windowContent = WindowContentView<ViewModelUI<StringNamespace>>(id: modalViewModelUI.id)
         let missingWindowContent = WindowContentView<ViewModelUI<StringNamespace>>(id: nil)
 
-        XCTAssertTrue(windowContent.viewModelUI?.viewModel === modalViewModel)
-        XCTAssertNil(missingWindowContent.viewModelUI)
+        #expect(windowContent.viewModelUI?.viewModel === modalViewModel)
+        #expect(missingWindowContent.viewModelUI == nil)
 
-        _ = customFlow.body
         _ = windowContent.body
         _ = missingWindowContent.body
         _ = StringNamespace.windowGroup()
@@ -139,20 +142,20 @@ final class SwiftUIUtilityTests: XCTestCase {
         ViewModelUIRegistry.remove(id: modalViewModelUI.id)
 
         let removedViewModelUI: ViewModelUI<StringNamespace>? = ViewModelUIRegistry.get(id: modalViewModelUI.id)
-        XCTAssertNil(removedViewModelUI)
+        #expect(removedViewModelUI == nil)
 #endif
     }
 
 #if os(macOS)
-    @MainActor
-    func testHostedSwiftUIContainersRenderNavigationAndWindowPaths() async {
+    @Test
+    func hostedSwiftUIContainersRenderNavigationAndWindowPaths() async {
         let flowRoot = TestStringViewModel(name: "flow-root")
         let pushed = TestStringViewModel(name: "pushed")
-        let flowExpectation = expectation(description: "navigation flow run")
+        var didRunFlow = false
         let flowWindow = hostInWindow(
             NavigationFlow(RootNavigationNode<StringNamespace>(flowRoot)) { _, proxy in
                 _ = proxy.push(ViewModelUI<StringNamespace>(pushed))
-                flowExpectation.fulfill()
+                didRunFlow = true
             }
         )
 
@@ -164,17 +167,17 @@ final class SwiftUIUtilityTests: XCTestCase {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             flowRoot.publish("go")
         }
-        await fulfillment(of: [flowExpectation], timeout: 1)
+        #expect(await waitUntil { didRunFlow })
         await renderHostedView()
         flowRoot.cancel()
 
         let customRoot = TestStringViewModel(name: "custom-root")
         let customPushed = TestStringViewModel(name: "custom-pushed")
-        let customExpectation = expectation(description: "custom flow run")
+        var didRunCustomFlow = false
         let customWindow = hostInWindow(
             CustomNavigationFlow(RootNavigationNode<StringNamespace>(customRoot)) { _, proxy in
                 _ = proxy.push(ViewModelUI<StringNamespace>(customPushed))
-                customExpectation.fulfill()
+                didRunCustomFlow = true
             }
         )
 
@@ -186,7 +189,7 @@ final class SwiftUIUtilityTests: XCTestCase {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             customRoot.publish("go")
         }
-        await fulfillment(of: [customExpectation], timeout: 1)
+        #expect(await waitUntil { didRunCustomFlow })
         await renderHostedView()
         customRoot.cancel()
 
@@ -207,14 +210,14 @@ final class SwiftUIUtilityTests: XCTestCase {
         await renderHostedView()
 
         let storedViewModelUI: ViewModelUI<StringNamespace>? = ViewModelUIRegistry.get(id: modalViewModelUI.id)
-        XCTAssertTrue(storedViewModelUI?.viewModel === modalViewModel)
+        #expect(storedViewModelUI?.viewModel === modalViewModel)
 
         presentationState.isPresented = false
         presentationState.viewModelUI = nil
         await renderHostedView()
 
         let removedViewModelUI: ViewModelUI<StringNamespace>? = ViewModelUIRegistry.get(id: modalViewModelUI.id)
-        XCTAssertNil(removedViewModelUI)
+        #expect(removedViewModelUI == nil)
 
         let contentViewWindow = hostInWindow(
             WindowContentView<ViewModelUI<StringNamespace>>.ContentView(viewModelUI: modalViewModelUI)

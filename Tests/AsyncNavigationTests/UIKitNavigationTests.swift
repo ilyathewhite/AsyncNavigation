@@ -1,7 +1,7 @@
 #if os(iOS)
 import SwiftUI
 import UIKit
-import XCTest
+import Testing
 @testable import AsyncNavigation
 
 private final class TestNavigationController: UINavigationController {
@@ -24,60 +24,65 @@ private final class TestNavigationController: UINavigationController {
     }
 }
 
-final class UIKitNavigationTests: XCTestCase {
+extension AsyncNavigationTestSuites {
     @MainActor
-    func testUIKitNavigationProxyManipulatesNavigationController() {
+    @Suite struct UIKitNavigationTests {}
+}
+
+extension AsyncNavigationTestSuites.UIKitNavigationTests {
+    @Test
+    func uiKitNavigationProxyManipulatesNavigationController() {
         let root = TestStringViewModel(name: "root")
         let rootController = HostingController<ViewModelUI<StringNamespace>>(viewModel: root)
         let navigationController = TestNavigationController(rootViewController: rootController)
 
         let proxy = UIKitNavigationProxy(navigationController)
 
-        XCTAssertEqual(proxy.currentIndex, 0)
+        #expect(proxy.currentIndex == 0)
 
         let pushed = TestStringViewModel(name: "pushed")
         let pushIndex = proxy.push(ViewModelUI<StringNamespace>(pushed))
 
-        XCTAssertEqual(pushIndex, 1)
-        XCTAssertEqual(proxy.currentIndex, 1)
-        XCTAssertTrue((navigationController.topViewController as? HostingController<ViewModelUI<StringNamespace>>)?.viewModel === pushed)
+        #expect(pushIndex == 1)
+        #expect(proxy.currentIndex == 1)
+        #expect((navigationController.topViewController as? HostingController<ViewModelUI<StringNamespace>>)?.viewModel === pushed)
 
         let replacement = TestStringViewModel(name: "replacement")
         let replaceIndex = proxy.replaceTop(with: ViewModelUI<StringNamespace>(replacement))
 
-        XCTAssertEqual(replaceIndex, 1)
-        XCTAssertTrue((navigationController.topViewController as? HostingController<ViewModelUI<StringNamespace>>)?.viewModel === replacement)
+        #expect(replaceIndex == 1)
+        #expect((navigationController.topViewController as? HostingController<ViewModelUI<StringNamespace>>)?.viewModel === replacement)
 
         let second = TestStringViewModel(name: "second")
         _ = proxy.push(ViewModelUI<StringNamespace>(second))
-        XCTAssertEqual(proxy.currentIndex, 2)
+        #expect(proxy.currentIndex == 2)
 
         proxy.pop(to: 1)
-        XCTAssertEqual(proxy.currentIndex, 1)
-        XCTAssertTrue((navigationController.topViewController as? HostingController<ViewModelUI<StringNamespace>>)?.viewModel === replacement)
+        #expect(proxy.currentIndex == 1)
+        #expect((navigationController.topViewController as? HostingController<ViewModelUI<StringNamespace>>)?.viewModel === replacement)
 
         proxy.popToRoot()
-        XCTAssertEqual(proxy.currentIndex, 0)
-        XCTAssertTrue(navigationController.topViewController === rootController)
+        #expect(proxy.currentIndex == 0)
+        #expect(navigationController.topViewController === rootController)
 
         let emptyProxy = UIKitNavigationProxy(UINavigationController())
-        XCTAssertEqual(emptyProxy.replaceTop(with: ViewModelUI<StringNamespace>(TestStringViewModel(name: "empty"))), -1)
+        #expect(emptyProxy.replaceTop(with: ViewModelUI<StringNamespace>(TestStringViewModel(name: "empty"))) == -1)
 
         let orphan = TestStringViewModel(name: "orphan")
         let orphanController = HostingController<ViewModelUI<StringNamespace>>(viewModel: orphan)
         orphanController.didMove(toParent: nil)
-        XCTAssertTrue(orphan.isCancelled)
+        #expect(orphan.isCancelled)
     }
 
-    @MainActor
-    func testHostedIOSNavigationAndPresentationPathsRender() async {
+    @Test
+    func hostedIOSNavigationAndPresentationPathsRender() async {
         let flowRoot = TestStringViewModel(name: "flow-root")
         let flowPushed = TestStringViewModel(name: "flow-pushed")
-        let flowExpectation = expectation(description: "navigation flow run")
+        var didRunFlow = false
         let flowWindow = hostInWindow(
             NavigationFlow(RootNavigationNode<StringNamespace>(flowRoot)) { _, proxy in
                 _ = proxy.push(ViewModelUI<StringNamespace>(flowPushed))
-                flowExpectation.fulfill()
+                didRunFlow = true
             }
         )
 
@@ -90,17 +95,17 @@ final class UIKitNavigationTests: XCTestCase {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             flowRoot.publish("go")
         }
-        await fulfillment(of: [flowExpectation], timeout: 1)
+        #expect(await waitUntil { didRunFlow })
         await renderHostedView()
         flowRoot.cancel()
 
         let uiKitRoot = TestStringViewModel(name: "uikit-root")
         let uiKitPushed = TestStringViewModel(name: "uikit-pushed")
-        let uiKitExpectation = expectation(description: "uikit flow run")
+        var didRunUIKitFlow = false
         let uiKitWindow = hostInWindow(
             UIKitNavigationFlow(RootNavigationNode<StringNamespace>(uiKitRoot)) { _, proxy in
                 _ = proxy.push(ViewModelUI<StringNamespace>(uiKitPushed))
-                uiKitExpectation.fulfill()
+                didRunUIKitFlow = true
             }
         )
 
@@ -115,7 +120,7 @@ final class UIKitNavigationTests: XCTestCase {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             uiKitRoot.publish("go")
         }
-        await fulfillment(of: [uiKitExpectation], timeout: 1)
+        #expect(await waitUntil { didRunUIKitFlow })
         await renderHostedView()
         uiKitRoot.cancel()
 
@@ -124,13 +129,13 @@ final class UIKitNavigationTests: XCTestCase {
         ViewModelUIRegistry.add(registryViewModelUI)
 
         let storedViewModelUI: ViewModelUI<StringNamespace>? = ViewModelUIRegistry.get(id: registryViewModelUI.id)
-        XCTAssertTrue(storedViewModelUI?.viewModel === registryViewModel)
+        #expect(storedViewModelUI?.viewModel === registryViewModel)
 
         let windowContent = WindowContentView<ViewModelUI<StringNamespace>>(id: registryViewModelUI.id)
         let missingWindowContent = WindowContentView<ViewModelUI<StringNamespace>>(id: nil)
 
-        XCTAssertTrue(windowContent.viewModelUI?.viewModel === registryViewModel)
-        XCTAssertNil(missingWindowContent.viewModelUI)
+        #expect(windowContent.viewModelUI?.viewModel === registryViewModel)
+        #expect(missingWindowContent.viewModelUI == nil)
 
         _ = windowContent.body
         _ = missingWindowContent.body
@@ -139,7 +144,7 @@ final class UIKitNavigationTests: XCTestCase {
         ViewModelUIRegistry.remove(id: registryViewModelUI.id)
 
         let removedViewModelUI: ViewModelUI<StringNamespace>? = ViewModelUIRegistry.get(id: registryViewModelUI.id)
-        XCTAssertNil(removedViewModelUI)
+        #expect(removedViewModelUI == nil)
 
         let hostedWindowViewModel = TestStringViewModel(name: "window-content")
         let hostedWindowViewModelUI = ViewModelUI<StringNamespace>(hostedWindowViewModel)
@@ -171,7 +176,9 @@ final class UIKitNavigationTests: XCTestCase {
         presentationState.isPresented = true
         await renderHostedView()
 
-        XCTAssertNotNil(presentationWindow.rootViewController?.presentedViewController)
+        #expect(await waitUntil {
+            presentationWindow.rootViewController?.presentedViewController != nil
+        })
 
         presentationState.isPresented = false
         presentationState.viewModelUI = nil
@@ -189,7 +196,9 @@ final class UIKitNavigationTests: XCTestCase {
         sheetState.viewModelUI = ViewModelUI<StringNamespace>(TestStringViewModel(name: "sheet"))
         await renderHostedView()
 
-        XCTAssertNotNil(sheetWindow.rootViewController?.presentedViewController)
+        #expect(await waitUntil {
+            sheetWindow.rootViewController?.presentedViewController != nil
+        })
 
         sheetState.viewModelUI = nil
         await renderHostedView()
