@@ -27,7 +27,8 @@ public struct NavigationFlow<Nsp: ViewModelUINamespace>: View {
     }
 
     public var body: some View {
-        NavigationStack(path: $pathContainer.path) {
+        // Animate path writes made by SwiftUI's native Back button.
+        NavigationStack(path: $pathContainer.path.animation(.default)) {
             Nsp.ContentView(root)
                 .background(
                     ForEach(pathContainer.stack, id: \.id) { viewModelUI in
@@ -35,6 +36,8 @@ public struct NavigationFlow<Nsp: ViewModelUINamespace>: View {
                     }
                 )
         }
+        // Animate path changes made directly by NavigationProxy.
+        .animation(.default, value: pathContainer.path)
         .onAppear {
             pathContainer.root = ViewModelUI<Nsp>(root)
         }

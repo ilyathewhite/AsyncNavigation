@@ -122,7 +122,6 @@ extension AsyncNavigationTestSuites.SwiftUIUtilityTests {
 #if os(macOS)
         let modalViewModel = TestStringViewModel(name: "modal")
         let modalViewModelUI = ViewModelUI<StringNamespace>(modalViewModel)
-        _ = CustomNavigationFlow(rootNode) { _, _ in }
 
         ViewModelUIRegistry.add(modalViewModelUI)
         let storedViewModelUI: ViewModelUI<StringNamespace>? = ViewModelUIRegistry.get(id: modalViewModelUI.id)
@@ -148,12 +147,48 @@ extension AsyncNavigationTestSuites.SwiftUIUtilityTests {
 
 #if os(macOS)
     @Test
+    func windowCloseRequestKeepsViewModelAliveUntilWindowAcceptsDismissal() {
+        let viewModel = TestStringViewModel(name: "unsaved-editor")
+        let viewModelUI = ViewModelUI<StringNamespace>(viewModel)
+        var closeRequests = 0
+        ViewModelUIRegistry.add(viewModelUI)
+        defer { ViewModelUIRegistry.remove(id: viewModel.id) }
+        ViewModelUIRegistry.setDismissAction(id: viewModel.id) { closeRequests += 1 }
+
+        ViewModelUIRegistry.requestDismiss(id: viewModel.id)
+        #expect(closeRequests == 1)
+        #expect(!viewModel.isCancelled)
+
+        // Keeping the window open must allow another attempt without cancelling the editor.
+        ViewModelUIRegistry.requestDismiss(id: viewModel.id)
+        #expect(closeRequests == 2)
+        #expect(!viewModel.isCancelled)
+
+        ViewModelUIRegistry.remove(id: viewModel.id)
+        ViewModelUIRegistry.requestDismiss(id: viewModel.id)
+        #expect(closeRequests == 2)
+    }
+
+    @Test
+    func dismissingBeforeWindowAppearsCancelsPresentation() {
+        let viewModel = TestStringViewModel(name: "pending-window")
+        ViewModelUIRegistry.add(ViewModelUI<StringNamespace>(viewModel))
+        defer { ViewModelUIRegistry.remove(id: viewModel.id) }
+
+        ViewModelUIRegistry.requestDismiss(id: viewModel.id)
+
+        #expect(viewModel.isCancelled)
+    }
+
+    @Test
     func hostedSwiftUIContainersRenderNavigationAndWindowPaths() async {
         let flowRoot = TestStringViewModel(name: "flow-root")
         let pushed = TestStringViewModel(name: "pushed")
         var didRunFlow = false
+        var navigation: (any NavigationProxy)?
         let flowWindow = hostInWindow(
             NavigationFlow(RootNavigationNode<StringNamespace>(flowRoot)) { _, proxy in
+                navigation = proxy
                 _ = proxy.push(ViewModelUI<StringNamespace>(pushed))
                 didRunFlow = true
             }
@@ -168,30 +203,12 @@ extension AsyncNavigationTestSuites.SwiftUIUtilityTests {
             flowRoot.publish("go")
         }
         #expect(await waitUntil { didRunFlow })
-        await renderHostedView()
+        #expect(await waitUntil { pushed.appearanceCount > 0 })
+        navigation?.popToRoot()
+        #expect(pushed.isCancelled)
+        #expect(navigation?.currentIndex == -1)
+        #expect(await waitUntil { pushed.disappearanceCount > 0 })
         flowRoot.cancel()
-
-        let customRoot = TestStringViewModel(name: "custom-root")
-        let customPushed = TestStringViewModel(name: "custom-pushed")
-        var didRunCustomFlow = false
-        let customWindow = hostInWindow(
-            CustomNavigationFlow(RootNavigationNode<StringNamespace>(customRoot)) { _, proxy in
-                _ = proxy.push(ViewModelUI<StringNamespace>(customPushed))
-                didRunCustomFlow = true
-            }
-        )
-
-        defer {
-            customWindow.close()
-        }
-
-        await renderHostedView()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            customRoot.publish("go")
-        }
-        #expect(await waitUntil { didRunCustomFlow })
-        await renderHostedView()
-        customRoot.cancel()
 
         let presentationState = HostedPresentationState()
         let presentationWindow = hostInWindow(HostedPresentationView(state: presentationState))

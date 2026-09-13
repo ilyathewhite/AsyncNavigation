@@ -12,6 +12,8 @@ enum AsyncNavigationTestSuites {}
 final class TestStringViewModel: BaseViewModel<String> {
     let name: String
     private(set) var cancelCallCount = 0
+    var appearanceCount = 0
+    var disappearanceCount = 0
 
     init(name: String = UUID().uuidString) {
         self.name = name
@@ -63,6 +65,8 @@ enum StringNamespace: ViewModelUINamespace {
 
         var body: some View {
             Text(viewModel.name)
+                .onAppear { viewModel.appearanceCount += 1 }
+                .onDisappear { viewModel.disappearanceCount += 1 }
         }
     }
 }

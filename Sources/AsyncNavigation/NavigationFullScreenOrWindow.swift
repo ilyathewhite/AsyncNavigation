@@ -13,6 +13,7 @@ import SwiftUI
 @MainActor
 enum ViewModelUIRegistry {
     private static var dict: [UUID: any ViewModelUIContainer] = [:]
+    private static var dismissActions: [UUID: () -> Void] = [:]
 
     static func add(_ viewModelUI: any ViewModelUIContainer) {
         guard dict[viewModelUI.id] == nil else { return }
@@ -21,6 +22,24 @@ enum ViewModelUIRegistry {
 
     static func remove(id: UUID) {
         dict.removeValue(forKey: id)
+        removeDismissAction(id: id)
+    }
+
+    static func setDismissAction(id: UUID, action: @escaping () -> Void) {
+        dismissActions[id] = action
+    }
+
+    static func removeDismissAction(id: UUID) {
+        dismissActions.removeValue(forKey: id)
+    }
+
+    static func requestDismiss(id: UUID) {
+        if let action = dismissActions[id] {
+            action()
+        }
+        else {
+            dict[id]?.cancel()
+        }
     }
 
     static func get<C: ViewModelUIContainer>(id: UUID) -> C? {
@@ -95,8 +114,7 @@ struct FullScreenOrWindow<C: ViewModelUIContainer, V: View>: ViewModifier {
                 Color.primary.opacity(0.1)
                     .contentShape(Rectangle())
                     .onTapGesture {
-                        id = nil
-                        viewModelUI.cancel()
+                        ViewModelUIRegistry.requestDismiss(id: viewModelUI.id)
                     }
             }
         }
@@ -108,13 +126,13 @@ struct FullScreenOrWindow<C: ViewModelUIContainer, V: View>: ViewModifier {
             if let prevAction = action {
                 action = {
                     prevAction()
-                    if canDismissModalWindow {
-                        isPresented.wrappedValue = false
+                    if canDismissModalWindow, let viewModelUI {
+                        ViewModelUIRegistry.requestDismiss(id: viewModelUI.id)
                     }
                 }
             }
-            else if canDismissModalWindow {
-                action = { isPresented.wrappedValue = false }
+            else if canDismissModalWindow, let viewModelUI {
+                action = { ViewModelUIRegistry.requestDismiss(id: viewModelUI.id) }
             }
             else {
                 action = nil
@@ -157,11 +175,25 @@ public struct WindowContentView<C: ViewModelUIContainer>: View {
         
         var body: some View {
             viewModelUI.makeView()
+                .onAppear {
+                    ViewModelUIRegistry.setDismissAction(id: viewModelUI.id) { dismiss() }
+                }
                 .onDisappear {
+                    ViewModelUIRegistry.removeDismissAction(id: viewModelUI.id)
                     viewModelUI.cancel()
                 }
                 .onReceive(viewModelUI.viewModel.isCancelledPublisher) { _ in
+                    // The owner has already ended the flow; there is no live editor to return to.
+#if os(macOS)
+                    if #available(macOS 15.0, *) {
+                        withTransaction(\.dismissBehavior, .destructive) { dismiss() }
+                    }
+                    else {
+                        dismiss()
+                    }
+#else
                     dismiss()
+#endif
                 }
         }
     }
@@ -187,4 +219,3 @@ extension ViewModelUINamespace {
         }
     }
 }
-
