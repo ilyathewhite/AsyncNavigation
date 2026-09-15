@@ -5,8 +5,6 @@
 //
 
 import Foundation
-import Combine
-import CombineEx
 import os
 import SwiftUI
 
@@ -182,7 +180,9 @@ public struct WindowContentView<C: ViewModelUIContainer>: View {
                     ViewModelUIRegistry.removeDismissAction(id: viewModelUI.id)
                     viewModelUI.cancel()
                 }
-                .onReceive(viewModelUI.viewModel.isCancelledPublisher) { _ in
+                .task {
+                    var iterator = viewModelUI.viewModel.cancellation.makeAsyncIterator()
+                    guard await iterator.next() != nil, !Task.isCancelled else { return }
                     // The owner has already ended the flow; there is no live editor to return to.
 #if os(macOS)
                     if #available(macOS 15.0, *) {

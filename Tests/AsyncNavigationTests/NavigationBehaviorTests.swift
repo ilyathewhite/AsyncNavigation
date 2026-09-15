@@ -83,7 +83,7 @@ extension AsyncNavigationTestSuites.NavigationBehaviorTests {
         #expect(proxy.currentIndex == 0)
         #expect(second.isCancelled)
 
-        let currentTimeIndex = proxy.currentViewModelPublisher.value.timeIndex
+        let currentTimeIndex = proxy.currentViewModel.timeIndex
         var timeIndex = currentTimeIndex
         let currentViewModel = try await proxy.getViewModel(StringNamespace.self, &timeIndex)
 
@@ -215,7 +215,7 @@ extension AsyncNavigationTestSuites.NavigationBehaviorTests {
         let viewModel = TestStringViewModel(name: "tracked")
         _ = proxy.push(ViewModelUI<StringNamespace>(viewModel))
 
-        let currentTimeIndex = proxy.currentViewModelPublisher.value.timeIndex
+        let currentTimeIndex = proxy.currentViewModel.timeIndex
         var typedTimeIndex = currentTimeIndex
         let typedViewModel = try await proxy.getViewModel(TestStringViewModel.self, &typedTimeIndex)
 

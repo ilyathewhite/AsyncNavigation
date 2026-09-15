@@ -2,7 +2,6 @@ import AsyncNavigation
 import Foundation
 import SwiftUI
 import Combine
-import CombineEx
 import Testing
 
 @Suite
@@ -47,9 +46,7 @@ final class DefaultStringViewModel: BasicViewModel {
     typealias PublishedValue = String
 
     let id = UUID()
-    var isCancelled = false
-    var hasRequest = false
-    let publishedValue = PassthroughSubject<String, Cancel>()
+    let publishedValue = PublishedValues<String>()
     var children: [String: any BasicViewModel] = [:]
 }
 

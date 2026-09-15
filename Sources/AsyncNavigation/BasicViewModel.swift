@@ -7,7 +7,6 @@
 
 import Foundation
 import Combine
-import CombineEx
 
 /// Provides the basic APIs that each view model is expected to have to work
 /// with async navigation.
@@ -16,7 +15,7 @@ public protocol BasicViewModel: ObservableObject, Hashable, Identifiable {
     /// The type of value that the user gets as a result of interacting with
     /// the UI for the view model when the user either closes the UI or
     /// navigates away from it to the next one.
-    associatedtype PublishedValue
+    associatedtype PublishedValue: Sendable
 
     nonisolated var id: UUID { get }
 
@@ -28,7 +27,7 @@ public protocol BasicViewModel: ObservableObject, Hashable, Identifiable {
     /// UI for the view model when the user either closes the UI or
     /// navigates away from it to the next one.
     /// A class that conforms to `BasicViewModel` should not use it directly.
-    var publishedValue: PassthroughSubject<PublishedValue, Cancel> { get }
+    var publishedValue: PublishedValues<PublishedValue> { get }
 
     /// This method should be called to return the result of interacting with the
     /// UI for the view model when the user either closes the UI or
@@ -43,7 +42,7 @@ public protocol BasicViewModel: ObservableObject, Hashable, Identifiable {
     /// Indicates whether there is a request for a published value.
     ///
     /// Useful for testing navigation flows.
-    var hasRequest: Bool { get set }
+    var hasRequest: Bool { get }
 
     /// Provides a key that is typically used in child UI (sheet, alert, or UI
     /// that is part of a container UI, like master / detail, or inspector UI).
@@ -204,140 +203,72 @@ extension BasicViewModel {
 // MARK: - Published values helpers
 
 public extension BasicViewModel {
-    typealias ValuePublisher = AnyPublisher<PublishedValue, Cancel>
+    var hasRequest: Bool { publishedValue.hasRequest }
+    var isCancelled: Bool { publishedValue.isFinished }
 
-    /// Provides the result of interacting with the UI for the view model when
-    /// the user either closes the UI or navigates away from it to the next one.
-    ///
-    /// This is a publisher and not a single value because the user may come back
-    /// to the same UI after navigating forward in the flow.
-    var value: AnyPublisher<PublishedValue, Cancel> {
-        publishedValue
-            .handleEvents(
-                receiveOutput: { [weak self] _ in
-                    assert(Thread.isMainThread)
-                    self?.hasRequest = false
-                },
-                receiveRequest: { [weak self] _ in
-                    assert(Thread.isMainThread)
-                    self?.hasRequest = true
-                }
-            )
-            .subscribe(on: DispatchQueue.main)
-            .receive(on: DispatchQueue.main)
-            .eraseToAnyPublisher()
-    }
+    /// Every output published after iteration starts, followed by cancellation as an error.
+    var throwingAsyncValues: PublishedValues<PublishedValue> { publishedValue }
 
-    /// Same as `value`, but provides `Result` values.
-    var valueResult: AnyPublisher<Result<PublishedValue, Cancel>, Never> {
-        value
-            .map { .success($0) }
-            .catch { Just(.failure($0)) }
-            .eraseToAnyPublisher()
-    }
+    /// Every output published after iteration starts. View-model cancellation ends iteration.
+    var asyncValues: MainActorSequence<PublishedValue> { publishedValue.values }
 
-    /// Same as `value`, but provides an async sequence.
-    var throwingAsyncValues: AsyncThrowingPublisher<AnyPublisher<PublishedValue, Cancel>> {
-        value.values
-    }
+    /// Emits once when the view model is cancelled, including for a late subscriber.
+    var cancellation: MainActorSequence<Void> { publishedValue.cancellation }
 
-    /// Same as `value`, but provides an async sequence that ignores cancellation.
-    var asyncValues: AsyncPublisher<AnyPublisher<PublishedValue, Never>> {
-        value
-            .catch { _ in Empty<PublishedValue, Never>() }
-            .eraseToAnyPublisher()
-            .values
-    }
-
-
-    /// Runs an async callback whenever a new value becomes available.
-    /// Throws an error if the view model gets cancelled before completing the sequence.
-    /// Useful for the async navigation API.
+    /// Runs a callback for each output. Callback errors propagate; view-model cancellation ends the loop.
     func get(callback: @escaping (PublishedValue) async throws -> Void) async throws {
-        try await asyncValues.get(callback: callback)
+        for await value in asyncValues { try await callback(value) }
     }
 
-    /// Runs an async callback whenever a new value becomes available.
-    /// Useful for the async navigation API.
     func get(callback: @escaping (PublishedValue) async -> Void) async {
-        await asyncValues.get(callback: callback)
+        for await value in asyncValues { await callback(value) }
     }
 
-    /// Runs a callback when the first value becomes available.
-    /// Throws an error if the view model gets cancelled before the first value.
-    /// Useful for sheets and alerts.
     func getFirst(callback: @escaping (PublishedValue) async throws -> Void) async throws {
-        let firstValue = try await value.first().async()
-        try await callback(firstValue)
+        var iterator = throwingAsyncValues.makeAsyncIterator()
+        guard let value = try await iterator.next() else { throw NavigationCancellation.cancel }
+        try await callback(value)
     }
 
-    /// Runs a callback when the first value becomes available.
-    /// Useful for sheets and alerts.
     func getFirst(callback: @escaping (PublishedValue) async -> Void) async {
-        if let firstValue = try? await value.first().async() {
-            await callback(firstValue)
-        }
+        var iterator = asyncValues.makeAsyncIterator()
+        if let value = await iterator.next() { await callback(value) }
     }
 
-    /// Provides the first value when it becomes available.
-    /// Throws an error if the view model gets cancelled before the first value.
-    /// Useful for sheets and alerts.
+    /// Waits for the first output and cancels the view model when the wait ends.
     func firstValue() async throws -> PublishedValue {
         defer { cancel() }
-        return try await value.first().async()
+        return try await firstValueWithoutCancelling()
     }
 
-    /// A convenience API to avoid a race condition between the code that needs a
-    /// first value and the code that provides it.
-    func getRequest() async {
-        while !hasRequest {
-            await Task.yield()
-        }
+    /// Waits for the first output without cancelling the view model when the wait ends.
+    /// Source cancellation or cancellation of the waiting task throws and detaches this observation.
+    func firstValueWithoutCancelling() async throws -> PublishedValue {
+        var iterator = throwingAsyncValues.makeAsyncIterator()
+        guard let value = try await iterator.next() else { throw NavigationCancellation.cancel }
+        return value
     }
 
-    /// A convenience API, useful for testing.
+    /// Waits for an active value request, source cancellation, or cancellation of the calling task.
+    func getRequest() async { await publishedValue.waitForRequest() }
+
     func publishOnRequest(_ value: PublishedValue) async {
-        while !hasRequest {
-            await Task.yield()
-        }
+        await getRequest()
+        guard !Task.isCancelled, !publishedValue.isFinished else { return }
         publish(value)
     }
 
-    /// A convenience API, useful for testing.
     func cancelOnRequest() async {
-        while !hasRequest {
-            await Task.yield()
-        }
+        await getRequest()
+        guard !Task.isCancelled, !publishedValue.isFinished else { return }
         cancel()
     }
 
-    func publish(_ value: PublishedValue) {
-        _publish(value)
-    }
+    func publish(_ value: PublishedValue) { _publish(value) }
 
-    /// An implementation of this protocol should call this function as part of
-    /// `publish`.
-    func _publish(_ value: PublishedValue) {
-        publishedValue.send(value)
-    }
+    func _publish(_ value: PublishedValue) { publishedValue.send(value) }
 
-    func cancel() {
-        _cancel()
-    }
+    func cancel() { _cancel() }
 
-    /// An implementation of this protocol should call this function as part of
-    /// `cancel`.
-    func _cancel() {
-        publishedValue.send(completion: .failure(.cancel))
-    }
-
-    /// Provides a value (Void) when the view model is cancelled.
-    var isCancelledPublisher: AnyPublisher<Void, Never> {
-        publishedValue
-            .map { _ in false }
-            .replaceError(with: true)
-            .filter { $0 }
-            .map { _ in () }
-            .eraseToAnyPublisher()
-    }
+    func _cancel() { publishedValue.finish() }
 }

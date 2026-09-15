@@ -1,11 +1,11 @@
-// swift-tools-version:5.3
+// swift-tools-version:6.2
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 import PackageDescription
 
 let package = Package(
     name: "AsyncNavigation",
     platforms: [
-        .macOS("13.0"), .iOS("16.0"), .tvOS(.v14)
+        .macOS(.v15), .iOS(.v18), .tvOS(.v18)
     ],
     products: [
         .library(
@@ -14,12 +14,12 @@ let package = Package(
         )
     ],
     dependencies: [
-        .package(url: "https://github.com/ilyathewhite/CombineEx.git", .upToNextMinor(from: "1.0.5"))
+        .package(url: "https://github.com/apple/swift-async-algorithms.git", exact: "1.1.5")
     ],
     targets: [
         .target(
             name: "AsyncNavigation",
-            dependencies: ["CombineEx"],
+            dependencies: [.product(name: "AsyncAlgorithms", package: "swift-async-algorithms")],
             swiftSettings: [
 //                .unsafeFlags([
 //                    "-Xfrontend",
@@ -31,7 +31,8 @@ let package = Package(
         ),
         .testTarget(
             name: "AsyncNavigationTests",
-            dependencies: ["AsyncNavigation", "CombineEx"]
+            dependencies: ["AsyncNavigation"]
         )
-    ]
+    ],
+    swiftLanguageModes: [.v5]
 )

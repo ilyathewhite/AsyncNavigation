@@ -6,12 +6,10 @@
 //
 
 import Foundation
-import Combine
-import CombineEx
 
 public class TestNavigationProxy: NavigationProxy {
     class PlaceholderViewModel: BasicViewModel {
-        var publishedValue: PassthroughSubject<Void, Cancel> = .init()
+        var publishedValue: PublishedValues<Void> = .init()
 
         func publish(_ value: Void) {
             _publish(value)
@@ -28,7 +26,6 @@ public class TestNavigationProxy: NavigationProxy {
             _cancel()
         }
 
-        var hasRequest = false
         var children: [String : any BasicViewModel] = [:]
     }
 
@@ -45,7 +42,9 @@ public class TestNavigationProxy: NavigationProxy {
     }
 
     public private(set) var stack: [any ViewModelUIContainer] = []
-    public let currentViewModelPublisher: CurrentValueSubject<ViewModelInfo, Never> = .init(.placeholder)
+    public private(set) var currentViewModel: ViewModelInfo = .placeholder
+    private let viewModels = MainActorValueSource<ViewModelInfo>(initialValue: .placeholder)
+    public var currentViewModels: MainActorSequence<ViewModelInfo> { viewModels.values }
 
     public init() {}
 
@@ -53,7 +52,7 @@ public class TestNavigationProxy: NavigationProxy {
     ///
     /// Used only for testing.
     public func getViewModel<Nsp: ViewModelUINamespace>(_ type: Nsp.Type, _ timeIndex: inout Int) async throws -> Nsp.ViewModel {
-        let value = await currentViewModelPublisher.values.first(where: { $0.timeIndex == timeIndex })
+        let value = await currentViewModels.first(where: { $0.timeIndex == timeIndex })
         guard let viewModel = value?.viewModel as? Nsp.ViewModel else {
             throw CurrentViewModelError.typeMismatch
         }
@@ -65,7 +64,7 @@ public class TestNavigationProxy: NavigationProxy {
     ///
     /// Used only for testing.
     public func getViewModel<T: BasicViewModel>(_ type: T.Type, _ timeIndex: inout Int) async throws -> T {
-        let value = await currentViewModelPublisher.values.first(where: { $0.timeIndex == timeIndex })
+        let value = await currentViewModels.first(where: { $0.timeIndex == timeIndex })
         guard let viewModel = value?.viewModel as? T else {
             throw CurrentViewModelError.typeMismatch
         }
@@ -84,8 +83,9 @@ public class TestNavigationProxy: NavigationProxy {
             assertionFailure()
             return
         }
-        let timeIndex = currentViewModelPublisher.value.timeIndex + 1
-        currentViewModelPublisher.send(.init(timeIndex: timeIndex, viewModel: viewModel))
+        let timeIndex = currentViewModel.timeIndex + 1
+        currentViewModel = .init(timeIndex: timeIndex, viewModel: viewModel)
+        viewModels.send(currentViewModel)
     }
 
     public var currentIndex: Int {

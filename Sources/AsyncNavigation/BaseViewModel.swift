@@ -6,17 +6,14 @@
 //
 
 import Foundation
-import Combine
-import CombineEx
 
-open class BaseViewModel<T>: BasicViewModel {
+open class BaseViewModel<T: Sendable>: BasicViewModel {
    public typealias PublishedValue = T
 
    public let id: UUID = .init()
 
    public var isCancelled = false
-   public var hasRequest = false
-   public var publishedValue: PassthroughSubject<T, Cancel> = .init()
+   public var publishedValue: PublishedValues<T> = .init()
    public var children: [String : any AsyncNavigation.BasicViewModel] = [:]
 
    open func cancel() {
@@ -25,4 +22,6 @@ open class BaseViewModel<T>: BasicViewModel {
    }
 
     public init() {}
+
+    isolated deinit { publishedValue.finish() }
 }

@@ -5,7 +5,6 @@
 //  Created by Ilya Belenkiy on 11/3/25.
 //
 
-import Combine
 
 @MainActor
 public protocol NavigationProxy {

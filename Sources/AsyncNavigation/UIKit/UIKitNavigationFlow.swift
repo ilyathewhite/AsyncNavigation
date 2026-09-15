@@ -8,8 +8,6 @@
 #if os(iOS)
 import SwiftUI
 import UIKit
-import Combine
-import CombineEx
 
 public class HostingController<T: ViewModelUIContainer>: UIHostingController<T.Nsp.ContentView> {
     public let viewModel: T.Nsp.ViewModel
