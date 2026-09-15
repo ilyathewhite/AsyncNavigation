@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased
+## 2.0.1
+
+This release completes the Swift 6 migration started in 2.0.0. Despite the patch version,
+it includes source-breaking API removals; see the migration notes below.
 
 - Work around Swift's generic isolated-deinitializer optimizer crash on compilers before 6.4
   ([swiftlang/swift#87462](https://github.com/swiftlang/swift/issues/87462)). Disable optimization only for the
