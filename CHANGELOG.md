@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Work around Swift's generic isolated-deinitializer optimizer crash on compilers before 6.4
+  ([swiftlang/swift#87462](https://github.com/swiftlang/swift/issues/87462)). Disable optimization only for the
+  affected deinitializers, preserving main-actor cleanup, deployment targets, and optimization elsewhere.
 - Build the package and its tests in Swift 6 language mode, retaining the Swift 6.2 toolchain requirement.
 - Isolate `windowGroup()` to the main actor and mark the `taskAlert` completion parameter as `sending`.
   Alert results can remain non-`Sendable` when ownership is transferred to the waiting task.

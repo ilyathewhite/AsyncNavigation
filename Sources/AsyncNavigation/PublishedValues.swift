@@ -36,12 +36,20 @@ public final class PublishedValues<Element: Sendable>: @MainActor AsyncSequence 
         }
     }
 
+#if compiler(<6.4)
+    // Avoid the generic isolated-deinit optimizer crash: https://github.com/swiftlang/swift/issues/87462
+    @_optimize(none)
+#endif
     isolated deinit { finish() }
 
     @MainActor
     fileprivate final class Lifetime {
         let end: () -> Void
         init(_ end: @escaping () -> Void) { self.end = end }
+#if compiler(<6.4)
+        // The enclosing generic type also triggers https://github.com/swiftlang/swift/issues/87462.
+        @_optimize(none)
+#endif
         isolated deinit { end() }
     }
 

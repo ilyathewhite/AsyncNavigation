@@ -23,5 +23,9 @@ open class BaseViewModel<T: Sendable>: BasicViewModel {
 
     public init() {}
 
+#if compiler(<6.4)
+    // Avoid the generic isolated-deinit optimizer crash: https://github.com/swiftlang/swift/issues/87462
+    @_optimize(none)
+#endif
     isolated deinit { publishedValue.finish() }
 }

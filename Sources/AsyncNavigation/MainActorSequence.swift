@@ -64,6 +64,10 @@ public final class MainActorValueSource<Element> {
             self.cancel = cancel
         }
 
+#if compiler(<6.4)
+        // The enclosing generic type also triggers https://github.com/swiftlang/swift/issues/87462.
+        @_optimize(none)
+#endif
         isolated deinit { cancel() }
 
         func next() async -> Element? {
@@ -90,6 +94,10 @@ public final class MainActorValueSource<Element> {
         replayLatest = true
     }
 
+#if compiler(<6.4)
+    // Avoid the generic isolated-deinit optimizer crash: https://github.com/swiftlang/swift/issues/87462
+    @_optimize(none)
+#endif
     isolated deinit { finish() }
 
     public var values: MainActorSequence<Element> {
