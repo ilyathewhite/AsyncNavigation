@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+- Build the package and its tests in Swift 6 language mode, retaining the Swift 6.2 toolchain requirement.
+- Isolate `windowGroup()` to the main actor and mark the `taskAlert` completion parameter as `sending`.
+  Alert results can remain non-`Sendable` when ownership is transferred to the waiting task.
+- Remove the legacy `ValuePublisher`, `value`, `valueResult`, and `isCancelledPublisher` output APIs,
+  including the forwarding `ViewModelUIContainer.value` property.
+
+### Migration from 2.0.0
+
+Use `viewModel.asyncValues` to observe outputs, or `viewModel.throwingAsyncValues` when cancellation should throw.
+Use `viewModel.cancellation` to observe cancellation. Access these sequences through `container.viewModel`
+when working with a `ViewModelUIContainer`.
+
 ## 2.0.0
 
 - Require Swift tools 6.2, iOS 18, macOS 15, and tvOS 18. Swift 5 language mode remains supported.

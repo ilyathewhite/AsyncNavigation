@@ -59,6 +59,7 @@ public extension View {
     /// A convenience API for running an async task based alert.
     /// `continuation` is a binding to the saved continuation from the started
     /// async task.
+    /// The completion callback transfers its result to the waiting task.
     ///
     /// Example
     /// ```
@@ -79,7 +80,7 @@ public extension View {
     func taskAlert<R, S: StringProtocol, A: View, M: View>(
         _ title: S,
         _ continuation: Binding<CheckedContinuation<R, Error>?>,
-        @ViewBuilder actions: (@escaping (R) -> Void) -> A,
+        @ViewBuilder actions: (@escaping (sending R) -> Void) -> A,
         @ViewBuilder message: () -> M
     ) -> some View {
         alert(

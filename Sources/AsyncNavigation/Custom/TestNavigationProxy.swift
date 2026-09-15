@@ -17,7 +17,7 @@ public class TestNavigationProxy: NavigationProxy {
         
         typealias PublishedValue = Void
 
-        var id: UUID = .init()
+        let id: UUID = .init()
         var name = ""
         var isCancelled = false
 

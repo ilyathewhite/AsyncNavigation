@@ -4,12 +4,12 @@ This package provides a way to express app navigation as an async function.
 
 ## Requirements
 
-- Swift 6.2 or later toolchain; the package uses Swift 5 language mode.
+- Swift 6.2 or later toolchain; the package uses Swift 6 language mode.
 - iOS 18, macOS 15, or tvOS 18 or later.
 
 ## Example
 
-For breaking changes and migration instructions, see [2.0.0 migration notes](CHANGELOG.md).
+For breaking changes and migration instructions, see the [migration notes](CHANGELOG.md).
 
 Here is an example from
 [SyncUpsTRA](https://github.com/ilyathewhite/SyncUpsTRA). Each screen is expressed as a navigation node

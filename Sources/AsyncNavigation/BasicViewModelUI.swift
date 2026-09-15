@@ -59,11 +59,6 @@ extension ViewModelUIContainer {
         viewModel.id
     }
 
-    @MainActor
-    public var value: Nsp.ViewModel.ValuePublisher {
-        viewModel.value
-    }
-
     public var anyViewModel: any BasicViewModel {
         viewModel
     }

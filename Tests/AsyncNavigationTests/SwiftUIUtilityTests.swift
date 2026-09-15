@@ -20,7 +20,6 @@ extension AsyncNavigationTestSuites.SwiftUIUtilityTests {
         #expect(viewModelUI == duplicate)
         #expect(viewModelUI != different)
         #expect(viewModelUI.anyViewModel === viewModel)
-        _ = viewModelUI.value
 
         _ = viewModelUI.makeView()
         _ = viewModelUI.makeAnyView()
@@ -108,6 +107,21 @@ extension AsyncNavigationTestSuites.SwiftUIUtilityTests {
         _ = Text("Root").fullScreenOrWindow(hostView, \.childUI) {
             Text("Presented")
         }
+    }
+
+    @Test
+    func taskAlertAcceptsNonSendableResults() {
+        let continuation = Binding<CheckedContinuation<NonSendableAlertResult, Error>?>.constant(nil)
+        _ = Text("Root").taskAlert(
+            "Alert",
+            continuation,
+            actions: { complete in
+                Button("OK") {
+                    complete(NonSendableAlertResult())
+                }
+            },
+            message: { Text("Message") }
+        )
     }
 
     @Test
@@ -247,4 +261,8 @@ extension AsyncNavigationTestSuites.SwiftUIUtilityTests {
         await renderHostedView()
     }
 #endif
+}
+
+private final class NonSendableAlertResult {
+    var value = 0
 }

@@ -1,4 +1,3 @@
-import Combine
 import Testing
 @testable import AsyncNavigation
 
@@ -167,65 +166,6 @@ extension AsyncNavigationTestSuites.BasicViewModelTests {
     }
 
     @Test
-    func isCancelledPublisherEmitsWhenCancelled() async {
-        let viewModel = TestStringViewModel(name: "publisher")
-        var didEmit = false
-        let cancellable = viewModel.isCancelledPublisher.sink {
-            didEmit = true
-        }
-
-        viewModel.cancel()
-
-        #expect(await waitUntil { didEmit })
-        withExtendedLifetime(cancellable) {}
-    }
-
-    @Test
-    func combineAdapterSubscribesBeforeImmediateBurstAndCancellation() async {
-        let viewModel = BaseViewModel<Int?>()
-        let expected: [Int?] = [1, nil, nil, 2, 2]
-        var received: [Int?] = []
-        var cancelled = false
-        let subscription = viewModel.value.sink(
-            receiveCompletion: {
-                if case .failure(.cancel) = $0 { cancelled = true }
-            },
-            receiveValue: { received.append($0) }
-        )
-        for value in expected { viewModel.publish(value) }
-        viewModel.cancel()
-        #expect(await waitUntil { cancelled })
-        #expect(received == expected)
-        withExtendedLifetime(subscription) {}
-    }
-
-    @Test
-    func combineAdapterSupportsSubscriptionFromBackgroundExecutor() async throws {
-        let viewModel = BaseViewModel<Int>()
-        nonisolated(unsafe) let publisher = viewModel.value
-        let task = Task.detached {
-            var iterator = publisher.first().values.makeAsyncIterator()
-            return try await iterator.next()
-        }
-        await viewModel.publishOnRequest(42)
-        #expect(try await task.value == 42)
-        #expect(!viewModel.isCancelled)
-    }
-
-    @Test
-    func cancellingCombineSubscriptionLeavesNativeSubscriberAlive() async throws {
-        let viewModel = BaseViewModel<Int>()
-        var iterator = viewModel.throwingAsyncValues.makeAsyncIterator()
-        var received: [Int] = []
-        let subscription = viewModel.value.sink(receiveCompletion: { _ in }, receiveValue: { received.append($0) })
-        subscription.cancel()
-        viewModel.publish(5)
-        #expect(try await iterator.next() == 5)
-        #expect(received.isEmpty)
-        #expect(!viewModel.isCancelled)
-    }
-
-    @Test
     func defaultProtocolHelpersPublishCancelAndCompareIdentity() async throws {
         let first = DefaultStringViewModel()
         let second = DefaultStringViewModel()
@@ -271,32 +211,6 @@ extension AsyncNavigationTestSuites.BasicViewModelTests {
         await throwingViewModel.publishOnRequest("throwing")
         let throwingValue = try await throwingTask.value
         #expect(throwingValue == "throwing")
-
-        let successViewModel = DefaultStringViewModel()
-        var receivedSuccess: String?
-        let successCancellable = successViewModel.valueResult.sink { result in
-            if case .success(let value) = result {
-                receivedSuccess = value
-            }
-        }
-
-        await successViewModel.publishOnRequest("success")
-        #expect(await waitUntil { receivedSuccess == "success" })
-        #expect(receivedSuccess == "success")
-        withExtendedLifetime(successCancellable) {}
-
-        let failureResultViewModel = DefaultStringViewModel()
-        var receivedFailure = false
-        let failureCancellable = failureResultViewModel.valueResult.sink { result in
-            if case .failure = result {
-                receivedFailure = true
-            }
-        }
-
-        await failureResultViewModel.cancelOnRequest()
-        #expect(await waitUntil { receivedFailure })
-        #expect(receivedFailure)
-        withExtendedLifetime(failureCancellable) {}
 
         let getFirstViewModel = DefaultStringViewModel()
         let failureTask = Task { @MainActor in

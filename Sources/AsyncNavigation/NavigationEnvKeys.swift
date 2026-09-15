@@ -8,7 +8,7 @@
 import SwiftUI
 
 private struct BackActionKey: EnvironmentKey {
-    static let defaultValue: (() -> Void)? = nil
+    static var defaultValue: (() -> Void)? { nil }
 }
 
 public extension EnvironmentValues {
@@ -27,10 +27,9 @@ public struct NavigationPathStack: Equatable {
 }
 
 public struct NavigationPathStackKey: PreferenceKey {
-    public static let defaultValue: NavigationPathStack? = nil
+    public static var defaultValue: NavigationPathStack? { nil }
 
     public static func reduce(value: inout NavigationPathStack?, nextValue: () -> NavigationPathStack?) {
         value = value ?? nextValue()
     }
 }
-

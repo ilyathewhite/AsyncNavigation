@@ -34,5 +34,5 @@ let package = Package(
             dependencies: ["AsyncNavigation"]
         )
     ],
-    swiftLanguageModes: [.v5]
+    swiftLanguageModes: [.v6]
 )

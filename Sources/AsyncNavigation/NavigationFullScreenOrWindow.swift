@@ -55,7 +55,7 @@ enum ViewModelUIRegistry {
 #if os(macOS)
 
 private struct DismissModalWindowActionKey: EnvironmentKey {
-    static let defaultValue: (() -> Void)? = nil
+    static var defaultValue: (() -> Void)? { nil }
 }
 
 public extension EnvironmentValues {
@@ -211,6 +211,7 @@ public struct WindowContentView<C: ViewModelUIContainer>: View {
 
 extension ViewModelUINamespace {
     // A window group for the UI namespace.
+    @MainActor
     public static func windowGroup()
     -> WindowGroup<PresentedWindowContent<UUID, WindowContentView<ViewModelUI<Self>>>>
     {
