@@ -115,9 +115,15 @@ public extension View {
         _ view: V1,
         _ keyPath: KeyPath<V1, C?>,
         isModal: Bool = true,
+        windowFrameKey: String? = nil,
         content: @escaping () -> V2
     ) -> some View {
-        fullScreenOrWindow(isPresented: view.showUI(keyPath), viewModelUI: view[keyPath: keyPath]) {
+        fullScreenOrWindow(
+            isPresented: view.showUI(keyPath),
+            viewModelUI: view[keyPath: keyPath],
+            isModal: isModal,
+            windowFrameKey: windowFrameKey
+        ) {
             content()
         }
     }

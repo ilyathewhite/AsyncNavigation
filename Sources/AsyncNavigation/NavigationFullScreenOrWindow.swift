@@ -10,12 +10,17 @@ import SwiftUI
 
 @MainActor
 enum ViewModelUIRegistry {
-    private static var dict: [UUID: any ViewModelUIContainer] = [:]
+    private struct Presentation {
+        let viewModelUI: any ViewModelUIContainer
+        let frameKey: String?
+    }
+
+    private static var dict: [UUID: Presentation] = [:]
     private static var dismissActions: [UUID: () -> Void] = [:]
 
-    static func add(_ viewModelUI: any ViewModelUIContainer) {
+    static func add(_ viewModelUI: any ViewModelUIContainer, frameKey: String? = nil) {
         guard dict[viewModelUI.id] == nil else { return }
-        dict[viewModelUI.id] = viewModelUI
+        dict[viewModelUI.id] = Presentation(viewModelUI: viewModelUI, frameKey: frameKey)
     }
 
     static func remove(id: UUID) {
@@ -36,12 +41,16 @@ enum ViewModelUIRegistry {
             action()
         }
         else {
-            dict[id]?.cancel()
+            dict[id]?.viewModelUI.cancel()
         }
     }
 
+    static func frameKey(id: UUID) -> String? {
+        dict[id]?.frameKey
+    }
+
     static func get<C: ViewModelUIContainer>(id: UUID) -> C? {
-        guard let anyViewModelUI = dict[id] else { return nil }
+        guard let anyViewModelUI = dict[id]?.viewModelUI else { return nil }
         guard let viewModelUI = anyViewModelUI as? C else {
             assertionFailure()
             return nil
@@ -76,6 +85,7 @@ struct FullScreenOrWindow<C: ViewModelUIContainer, V: View>: ViewModifier {
     let isPresented: Binding<Bool>
     let viewModelUI: C?
     let isModal: Bool
+    let windowFrameKey: String?
     let presentedContent: () -> V?
     
 #if os(macOS)
@@ -84,10 +94,17 @@ struct FullScreenOrWindow<C: ViewModelUIContainer, V: View>: ViewModifier {
     }
 #endif
     
-    init(isPresented: Binding<Bool>, viewModelUI: C?, isModal: Bool, content: @escaping () -> V?) {
+    init(
+        isPresented: Binding<Bool>,
+        viewModelUI: C?,
+        isModal: Bool,
+        windowFrameKey: String?,
+        content: @escaping () -> V?
+    ) {
         self.isPresented = isPresented
         self.viewModelUI = viewModelUI
         self.isModal = isModal
+        self.windowFrameKey = windowFrameKey
         self.presentedContent = content
     }
 
@@ -95,10 +112,10 @@ struct FullScreenOrWindow<C: ViewModelUIContainer, V: View>: ViewModifier {
 #if os(iOS)
         content.fullScreenCover(isPresented: isPresented, content: presentedContent)
 #else
-        content.onChange(of: viewModelUI) { viewModelUI in
+        content.onChange(of: viewModelUI) { _, viewModelUI in
             if let viewModelUI {
                 id = viewModelUI.id
-                ViewModelUIRegistry.add(viewModelUI)
+                ViewModelUIRegistry.add(viewModelUI, frameKey: windowFrameKey)
                 openWindow(id: C.Nsp.ViewModel.viewModelDefaultKey, value: viewModelUI.id)
             }
             else {
@@ -117,6 +134,9 @@ struct FullScreenOrWindow<C: ViewModelUIContainer, V: View>: ViewModifier {
             }
         }
         .onDisappear {
+            if let id {
+                ViewModelUIRegistry.remove(id: id)
+            }
             id = nil
             viewModelUI?.cancel()
         }
@@ -145,14 +165,23 @@ extension View {
     /// `viewModelUI` in a separate window.
     /// If the presentation is modal (the default), the presenting view has
     /// a semi-transparent cover. Tapping that cover closes the window.
+    /// `windowFrameKey` provides a stable geometry key independently of the view model's lifetime.
+    /// The window scene can use `WindowContentView.frameKey` to persist its frame.
     public func fullScreenOrWindow<C: ViewModelUIContainer, V: View>(
         isPresented: Binding<Bool>,
         viewModelUI: C?,
-        isModal: Bool = true, 
+        isModal: Bool = true,
+        windowFrameKey: String? = nil,
         content: @escaping () -> V?
     )
     -> some View {
-        self.modifier(FullScreenOrWindow(isPresented: isPresented, viewModelUI: viewModelUI, isModal: isModal, content: content))
+        self.modifier(FullScreenOrWindow(
+            isPresented: isPresented,
+            viewModelUI: viewModelUI,
+            isModal: isModal,
+            windowFrameKey: windowFrameKey,
+            content: content
+        ))
     }
 }
 
@@ -162,17 +191,29 @@ extension View {
 /// standard `dismiss` action from the SwiftUI environment.
 public struct WindowContentView<C: ViewModelUIContainer>: View {
     let viewModelUI: C?
-    
+    /// An optional geometry persistence key supplied by the presenter, independent of the view model ID.
+    public let frameKey: String?
+
     struct ContentView: View {
         let viewModelUI: C
+        // Triggers a view update on cancellation; the view model is not observed here.
+        @State private var isCancelled = false
         @Environment(\.dismiss) private var dismiss
         
         public init(viewModelUI: C) {
             self.viewModelUI = viewModelUI
         }
         
+        @ViewBuilder
+        private var content: some View {
+            // Closing can trigger a final update after the view model has been cancelled.
+            if !isCancelled && !viewModelUI.viewModel.isCancelled {
+                viewModelUI.makeView()
+            }
+        }
+
         var body: some View {
-            viewModelUI.makeView()
+            content
                 .onAppear {
                     ViewModelUIRegistry.setDismissAction(id: viewModelUI.id) { dismiss() }
                 }
@@ -183,6 +224,7 @@ public struct WindowContentView<C: ViewModelUIContainer>: View {
                 .task {
                     var iterator = viewModelUI.viewModel.cancellation.makeAsyncIterator()
                     guard await iterator.next() != nil, !Task.isCancelled else { return }
+                    isCancelled = true
                     // The owner has already ended the flow; there is no live editor to return to.
 #if os(macOS)
                     if #available(macOS 15.0, *) {
@@ -200,6 +242,7 @@ public struct WindowContentView<C: ViewModelUIContainer>: View {
     
     public init(id: UUID?) {
         self.viewModelUI = id.flatMap { ViewModelUIRegistry.get(id: $0) }
+        self.frameKey = id.flatMap { ViewModelUIRegistry.frameKey(id: $0) }
     }
     
     public var body: some View {

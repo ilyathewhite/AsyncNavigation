@@ -31,7 +31,15 @@ let package = Package(
         ),
         .testTarget(
             name: "AsyncNavigationTests",
-            dependencies: ["AsyncNavigation"]
+            dependencies: [
+                "AsyncNavigation",
+                .target(name: "UtilityWindowTestApp", condition: .when(platforms: [.macOS]))
+            ]
+        ),
+        .executableTarget(
+            name: "UtilityWindowTestApp",
+            dependencies: ["AsyncNavigation"],
+            path: "Tests/Fixtures/UtilityWindowTestApp"
         )
     ],
     swiftLanguageModes: [.v6]

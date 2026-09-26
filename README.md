@@ -7,6 +7,21 @@ This package provides a way to express app navigation as an async function.
 - Swift 6.2 or later toolchain; the package uses Swift 6 language mode.
 - iOS 18, macOS 15, or tvOS 18 or later.
 
+## Tests
+
+Run the package tests and collect coverage with:
+
+```sh
+swift test --enable-code-coverage
+```
+
+On macOS, window tests require a logged-in graphical session and briefly open test windows.
+SwiftPM builds the `UtilityWindowTestApp` fixture automatically. Scene tests launch it with an isolated bundle
+identifier and defaults suite, exercise presentation and dismissal, and quit and relaunch it to verify restoration
+behavior.
+An ordinary window must restore on relaunch while the utility window stays closed.
+The fixture's coverage profiles are collected alongside the test process's profiles.
+
 ## Example
 
 For breaking changes and migration instructions, see the [migration notes](CHANGELOG.md).
