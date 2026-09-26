@@ -86,6 +86,9 @@ extension BasicViewModel where Self.ObjectWillChangePublisher == ObservableObjec
 extension BasicViewModel {
     /// Adds a child to the view model. The view model must not already contain a
     /// child with the provided `key`.
+    ///
+    /// Sends `objectWillChange` before insertion so existing views can respond to
+    /// the new child. For initial setup during view construction, use `addChildIfNeeded`.
     public func addChild<VM: BasicViewModel>(
         _ child: VM,
         key: String = VM.viewModelDefaultKey,
@@ -126,16 +129,24 @@ extension BasicViewModel {
         children.remove(at: index)
     }
 
-    /// Adds a child to the view model. If the view model already contains a
-    /// child with the provided `key`, the child view model expression is not
-    /// evaluated.
+    /// Adds an initial child synchronously without sending `objectWillChange`.
+    ///
+    /// Use during view construction so the child is available to the view's body
+    /// without publishing during a view update. Use `addChild`
+    /// for dynamic additions that need to notify existing views.
+    ///
+    /// If a child with the provided `key` already exists, neither the child expression
+    /// nor `didAddChild` is evaluated. Otherwise, the callback runs synchronously after
+    /// insertion; during view construction, it must not publish observable changes itself.
     public func addChildIfNeeded<VM: BasicViewModel>(
         _ child: @autoclosure () -> VM,
         key: String = VM.viewModelDefaultKey,
         didAddChild: ((_ child: VM, _ key: String) -> Void)? = nil
     ) {
         if children[key] == nil {
-            addChild(child(), key: key, didAddChild: didAddChild)
+            let child = child()
+            children[key] = child
+            didAddChild?(child, key)
         }
     }
 

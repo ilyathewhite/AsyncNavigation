@@ -1,5 +1,15 @@
+import Combine
+import Foundation
 import Testing
 @testable import AsyncNavigation
+
+@MainActor
+private final class ChildContainerViewModel: @MainActor BasicViewModel {
+    let id = UUID()
+    let objectWillChange = ObservableObjectPublisher()
+    let publishedValue = PublishedValues<Void>()
+    var children: [String: any BasicViewModel] = [:]
+}
 
 extension AsyncNavigationTestSuites {
     @MainActor
@@ -163,6 +173,59 @@ extension AsyncNavigationTestSuites.BasicViewModelTests {
 
         #expect(removedChild == nil)
         #expect(child?.isCancelled == true)
+    }
+
+    @Test(arguments: [TestIntViewModel.viewModelDefaultKey, "detail"])
+    func initialChildSetupDoesNotPublishAndRunsCallbackOnce(key: String) async throws {
+        let parent = ChildContainerViewModel()
+        defer { parent.cancel() }
+        var changes = 0
+        var constructions = 0
+        var callbacks = 0
+        let observation = parent.objectWillChange.sink { changes += 1 }
+        defer { observation.cancel() }
+
+        func makeChild() -> TestIntViewModel {
+            constructions += 1
+            return TestIntViewModel(seed: constructions)
+        }
+
+        for _ in 0..<2 {
+            parent.addChildIfNeeded(makeChild(), key: key) { child, addedKey in
+                callbacks += 1
+                #expect(addedKey == key)
+                #expect(parent.anyChild(key: addedKey) === child)
+            }
+        }
+
+        let child: TestIntViewModel = try #require(parent.child(key: key))
+        #expect(constructions == 1)
+        #expect(callbacks == 1)
+        #expect(child.seed == 1)
+        #expect(changes == 0)
+        await flushMainQueue()
+        #expect(changes == 0)
+    }
+
+    @Test
+    func dynamicChildChangesStillNotifyObserversBeforeMutation() {
+        let parent = ChildContainerViewModel()
+        defer { parent.cancel() }
+        let child = TestIntViewModel()
+        var childWasPresent: [Bool] = []
+        let observation = parent.objectWillChange.sink {
+            childWasPresent.append(parent.anyChild(key: "detail") != nil)
+        }
+        defer { observation.cancel() }
+
+        parent.addChild(child, key: "detail")
+        #expect(childWasPresent == [false])
+        #expect(parent.anyChild(key: "detail") === child)
+
+        parent.removeChild(child, delay: false)
+        #expect(childWasPresent == [false, true])
+        #expect(parent.anyChild(key: "detail") == nil)
+        #expect(child.isCancelled)
     }
 
     @Test
