@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.1.0
+
+- Add macOS utility windows that preserve their position and size without reopening at app launch.
+- Add `persistWindowFrame` and stable `windowFrameKey` support so window geometry is independent of view-model identity.
+- Improve window dismissal and reopening, release presentation registrations when owners disappear, and avoid building content for cancelled view models.
+- Forward `isModal` through the presentation helper.
+- Make `addChildIfNeeded` register initial children synchronously without publishing `objectWillChange` during view construction. Use `addChild` for dynamic additions that must notify existing views.
+- Add regression tests for child registration, window geometry, presentation lifetime, and app relaunch behavior.
+
 ## 2.0.1
 
 This release completes the Swift 6 migration started in 2.0.0. Despite the patch version,
