@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.1.0
+## 2.0.2
 
 - Add macOS utility windows that preserve their position and size without reopening at app launch.
 - Add `persistWindowFrame` and stable `windowFrameKey` support so window geometry is independent of view-model identity.
