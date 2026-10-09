@@ -29,7 +29,8 @@ extension AsyncNavigationTestSuites.NavigationBehaviorTests {
         do {
             try await task.value
             Issue.record("Expected the callback error to escape")
-        } catch {
+        }
+        catch {
             #expect(error as? TestError == .boom)
         }
 
@@ -95,7 +96,8 @@ extension AsyncNavigationTestSuites.NavigationBehaviorTests {
         do {
             _ = try await proxy.getViewModel(TestIntViewModel.self, &mismatchIndex)
             Issue.record("Expected a type mismatch error")
-        } catch {
+        }
+        catch {
             #expect(error as? TestNavigationProxy.CurrentViewModelError == .typeMismatch)
         }
     }
@@ -189,7 +191,8 @@ extension AsyncNavigationTestSuites.NavigationBehaviorTests {
         do {
             try await secondTask.value
             Issue.record("Expected callback error to escape")
-        } catch {
+        }
+        catch {
             #expect(error as? TestError == .boom)
         }
 
@@ -226,7 +229,8 @@ extension AsyncNavigationTestSuites.NavigationBehaviorTests {
         do {
             _ = try await proxy.getViewModel(IntNamespace.self, &mismatchTimeIndex)
             Issue.record("Expected type mismatch for namespace lookup")
-        } catch {
+        }
+        catch {
             #expect(error as? TestNavigationProxy.CurrentViewModelError == .typeMismatch)
         }
     }

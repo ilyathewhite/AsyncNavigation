@@ -115,7 +115,8 @@ private struct WindowFrameStorage: NSViewRepresentable {
 
         private func saveFrame() {
             guard hasRestoredFrame, let configuredWindow,
-                  configuredWindow.frame.width > 0, configuredWindow.frame.height > 0 else { return }
+                  configuredWindow.frame.width > 0, configuredWindow.frame.height > 0
+            else { return }
             savedFrame.wrappedValue = configuredWindow.frameDescriptor
         }
 

@@ -135,10 +135,7 @@ struct HostedPresentationView: View {
     var body: some View {
         Color.clear
             .frame(width: 160, height: 120)
-            .fullScreenOrWindow(
-                isPresented: $state.isPresented,
-                viewModelUI: state.viewModelUI
-            ) {
+            .fullScreenOrWindow(isPresented: $state.isPresented, viewModelUI: state.viewModelUI) {
                 Text("Presented")
             }
     }

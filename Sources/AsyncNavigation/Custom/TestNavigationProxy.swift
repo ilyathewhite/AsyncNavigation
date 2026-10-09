@@ -14,7 +14,7 @@ public class TestNavigationProxy: NavigationProxy {
         func publish(_ value: Void) {
             _publish(value)
         }
-        
+
         typealias PublishedValue = Void
 
         let id: UUID = .init()
@@ -26,7 +26,7 @@ public class TestNavigationProxy: NavigationProxy {
             _cancel()
         }
 
-        var children: [String : any BasicViewModel] = [:]
+        var children: [String: any BasicViewModel] = [:]
     }
 
     public struct ViewModelInfo {
@@ -51,7 +51,10 @@ public class TestNavigationProxy: NavigationProxy {
     /// Returns the view model of a particular type for a given time index.
     ///
     /// Used only for testing.
-    public func getViewModel<Nsp: ViewModelUINamespace>(_ type: Nsp.Type, _ timeIndex: inout Int) async throws -> Nsp.ViewModel {
+    public func getViewModel<Nsp: ViewModelUINamespace>(
+        _ type: Nsp.Type,
+        _ timeIndex: inout Int
+    ) async throws -> Nsp.ViewModel {
         let value = await currentViewModels.first(where: { $0.timeIndex == timeIndex })
         guard let viewModel = value?.viewModel as? Nsp.ViewModel else {
             throw CurrentViewModelError.typeMismatch

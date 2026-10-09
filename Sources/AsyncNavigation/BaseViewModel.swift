@@ -8,18 +8,18 @@
 import Foundation
 
 open class BaseViewModel<T: Sendable>: BasicViewModel {
-   public typealias PublishedValue = T
+    public typealias PublishedValue = T
 
-   public let id: UUID = .init()
+    public let id: UUID = .init()
 
-   public var isCancelled = false
-   public var publishedValue: PublishedValues<T> = .init()
-   public var children: [String : any AsyncNavigation.BasicViewModel] = [:]
+    public var isCancelled = false
+    public var publishedValue: PublishedValues<T> = .init()
+    public var children: [String: any AsyncNavigation.BasicViewModel] = [:]
 
-   open func cancel() {
-      isCancelled = true
-      _cancel()
-   }
+    open func cancel() {
+        isCancelled = true
+        _cancel()
+    }
 
     public init() {}
 

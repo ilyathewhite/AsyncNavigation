@@ -98,7 +98,8 @@ extension AsyncNavigationTestSuites.BasicViewModelTests {
         do {
             _ = try await task.value
             Issue.record("Expected cancellation to throw")
-        } catch {
+        }
+        catch {
             #expect(viewModel.isCancelled)
         }
     }
@@ -256,7 +257,8 @@ extension AsyncNavigationTestSuites.BasicViewModelTests {
         do {
             _ = try await cancelTask.value
             Issue.record("Expected default cancellation to throw")
-        } catch {
+        }
+        catch {
             #expect(!second.hasRequest)
         }
 
@@ -287,7 +289,8 @@ extension AsyncNavigationTestSuites.BasicViewModelTests {
         do {
             try await failureTask.value
             Issue.record("Expected getFirst to surface the callback error")
-        } catch {
+        }
+        catch {
             #expect(error as? TestError == .boom)
         }
 
@@ -303,7 +306,8 @@ extension AsyncNavigationTestSuites.BasicViewModelTests {
         do {
             _ = try await getTask.value
             Issue.record("Expected get to surface the callback error")
-        } catch {
+        }
+        catch {
             #expect(error as? TestError == .boom)
         }
     }

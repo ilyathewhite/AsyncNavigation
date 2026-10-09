@@ -81,19 +81,19 @@ struct FullScreenOrWindow<C: ViewModelUIContainer, V: View>: ViewModifier {
     @Environment(\.openWindow) private var openWindow
     @State private var id: UUID?
 #endif
-    
+
     let isPresented: Binding<Bool>
     let viewModelUI: C?
     let isModal: Bool
     let windowFrameKey: String?
     let presentedContent: () -> V?
-    
+
 #if os(macOS)
     var canDismissModalWindow: Bool {
         isModal && isPresented.wrappedValue
     }
 #endif
-    
+
     init(
         isPresented: Binding<Bool>,
         viewModelUI: C?,
@@ -199,11 +199,11 @@ public struct WindowContentView<C: ViewModelUIContainer>: View {
         // Triggers a view update on cancellation; the view model is not observed here.
         @State private var isCancelled = false
         @Environment(\.dismiss) private var dismiss
-        
+
         public init(viewModelUI: C) {
             self.viewModelUI = viewModelUI
         }
-        
+
         @ViewBuilder
         private var content: some View {
             // Closing can trigger a final update after the view model has been cancelled.
@@ -239,12 +239,12 @@ public struct WindowContentView<C: ViewModelUIContainer>: View {
                 }
         }
     }
-    
+
     public init(id: UUID?) {
         self.viewModelUI = id.flatMap { ViewModelUIRegistry.get(id: $0) }
         self.frameKey = id.flatMap { ViewModelUIRegistry.frameKey(id: $0) }
     }
-    
+
     public var body: some View {
         if let viewModelUI {
             ContentView(viewModelUI: viewModelUI)

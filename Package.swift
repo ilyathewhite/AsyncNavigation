@@ -8,10 +8,7 @@ let package = Package(
         .macOS(.v15), .iOS(.v18), .tvOS(.v18)
     ],
     products: [
-        .library(
-            name: "AsyncNavigation",
-            targets: ["AsyncNavigation"]
-        )
+        .library(name: "AsyncNavigation", targets: ["AsyncNavigation"])
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-async-algorithms.git", exact: "1.1.5")

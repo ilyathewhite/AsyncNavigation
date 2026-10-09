@@ -14,16 +14,16 @@ public struct NavigationFlow<Nsp: ViewModelUINamespace>: View {
 
     @StateObject private var pathContainer = NavigationPathContainer()
 
-    public init(_ rootNode: RootNavigationNode<Nsp>, run: @escaping (RootViewModel.PublishedValue, _: NavigationProxy) async -> Void) {
+    public init(
+        _ rootNode: RootNavigationNode<Nsp>,
+        run: @escaping (RootViewModel.PublishedValue, _: NavigationProxy) async -> Void
+    ) {
         self.root = rootNode.root
         self.run = run
     }
 
     func addNavigation(_ viewModelUI: some ViewModelUIContainer) -> AnyView {
-        AnyView(
-            EmptyView()
-                .addNavigation(type(of: viewModelUI).Nsp.self)
-        )
+        AnyView(EmptyView() .addNavigation(type(of: viewModelUI).Nsp.self))
     }
 
     public var body: some View {
