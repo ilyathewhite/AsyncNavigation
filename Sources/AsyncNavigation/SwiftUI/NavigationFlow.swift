@@ -8,27 +8,18 @@
 import SwiftUI
 
 public struct NavigationFlow<Nsp: ViewModelUINamespace>: View {
-    public enum AnimationPolicy {
-        /// Preserve automatic animations for clients that do not supply transactions.
-        case automatic
-        /// Programmatic changes inherit the caller's transaction; native Back still uses SwiftUI's transaction.
-        case caller
-    }
     public typealias RootViewModel = Nsp.ViewModel
     @State private var root: RootViewModel
     let run: (RootViewModel.PublishedValue, _ proxy: NavigationProxy) async -> Void
-    let animationPolicy: AnimationPolicy
 
     @StateObject private var pathContainer = NavigationPathContainer()
 
     public init(
         _ rootNode: RootNavigationNode<Nsp>,
-        animationPolicy: AnimationPolicy = .automatic,
         run: @escaping (RootViewModel.PublishedValue, _: NavigationProxy) async -> Void
     ) {
         self.root = rootNode.root
         self.run = run
-        self.animationPolicy = animationPolicy
     }
 
     func addNavigation(_ viewModelUI: some ViewModelUIContainer) -> AnyView {
@@ -37,7 +28,7 @@ public struct NavigationFlow<Nsp: ViewModelUINamespace>: View {
 
     public var body: some View {
         // Animate path writes made by SwiftUI's native Back button.
-        NavigationStack(path: animationPolicy == .automatic ? $pathContainer.path.animation(.default) : $pathContainer.path) {
+        NavigationStack(path: $pathContainer.path.animation(.default)) {
             Nsp.ContentView(root)
                 .background(
                     ForEach(pathContainer.stack, id: \.id) { viewModelUI in
@@ -46,7 +37,7 @@ public struct NavigationFlow<Nsp: ViewModelUINamespace>: View {
                 )
         }
         // Animate path changes made directly by NavigationProxy.
-        .modifier(NavigationAnimation(policy: animationPolicy, path: pathContainer.path))
+        .animation(.default, value: pathContainer.path)
         .onAppear {
             pathContainer.root = ViewModelUI<Nsp>(root)
         }
@@ -55,19 +46,6 @@ public struct NavigationFlow<Nsp: ViewModelUINamespace>: View {
         .task {
             await root.get { value in
                 await run(value, pathContainer)
-            }
-        }
-    }
-
-    private struct NavigationAnimation: ViewModifier {
-        let policy: AnimationPolicy
-        let path: NavigationPath
-
-        @ViewBuilder
-        func body(content: Content) -> some View {
-            switch policy {
-            case .automatic: content.animation(.default, value: path)
-            case .caller: content
             }
         }
     }
