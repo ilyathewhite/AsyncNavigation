@@ -28,9 +28,11 @@ struct UtilityWindowTestApp: App {
         utilityWindow(TestUtility.self, defaults: driver.defaults)
             .defaultSize(width: 320, height: 240)
 
-        // This scene must restore on relaunch, proving that restoration was actually attempted.
-        WindowGroup("Restoration Control", id: "control", for: String.self) { _ in
-            Text("Restoration control").frame(width: 250, height: 180)
+        // A restored value, rather than a default window, proves that restoration was attempted.
+        WindowGroup("Restoration Control", id: "control", for: String.self) { value in
+            Text(value.wrappedValue ?? "Restoration control")
+                .frame(width: 250, height: 180)
+                .navigationTitle(value.wrappedValue ?? "Restoration Control")
         }
         .defaultLaunchBehavior(.suppressed)
         .commandsRemoved()
@@ -56,7 +58,7 @@ private struct Presenter: View {
             .fullScreenOrWindow(self, \.childUI, isModal: false, windowFrameKey: driver.frameKey) {
                 childUI?.makeView()
             }
-            .onAppear { driver.openControl = { openWindow(id: "control", value: "saved-control") } }
+            .onAppear { driver.openControl = { openWindow(id: "control", value: driver.controlValue) } }
     }
 }
 
@@ -114,6 +116,7 @@ private final class WindowTestDriver {
     static let shared = WindowTestDriver()
     let defaults: UserDefaults
     let frameKey = "document-A.utility"
+    let controlValue = "saved-control"
     var child: ViewModelUI<TestUtility>?
     var showsPresenter = true
     var openControl: (() -> Void)?
@@ -139,7 +142,7 @@ private final class WindowTestDriver {
             try await Task.sleep(for: .milliseconds(500))
             if mode == "relaunch" {
                 try await wait("ordinary window restores after relaunch") {
-                    self.visibleWindows.contains { $0.title == "Restoration Control" }
+                    self.visibleWindows.contains { $0.title == self.controlValue }
                 }
                 check(visibleWindows.count == 2, "utility window does not reopen after quitting with it open")
                 check(child == nil, "relaunch has no utility view model")
@@ -165,7 +168,9 @@ private final class WindowTestDriver {
                     let (_, window) = try await present()
                     window.setFrameOrigin(NSPoint(x: 130, y: 140))
                     openControl?()
-                    try await wait("restoration control opens") { self.visibleWindows.count == 3 }
+                    try await wait("restoration control opens") {
+                        self.visibleWindows.count == 3 && self.visibleWindows.contains { $0.title == self.controlValue }
+                    }
                     check(defaults.string(forKey: frameKey) != nil, "supplied defaults store the frame")
                     // Leave both auxiliary windows open and quit through AppKit's normal termination path.
                 }
@@ -185,6 +190,8 @@ private final class WindowTestDriver {
         catch {
             fatalError("Cannot write fixture report: \(error)")
         }
+        // Clear persisted windows after the final launch; leave-open deliberately preserves them.
+        if mode != "leave-open" { visibleWindows.forEach { $0.close() } }
         NSApp.terminate(nil)
     }
 

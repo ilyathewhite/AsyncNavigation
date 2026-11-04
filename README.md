@@ -16,10 +16,13 @@ swift test --enable-code-coverage
 ```
 
 On macOS, window tests require a logged-in graphical session and briefly open test windows.
-SwiftPM builds the `UtilityWindowTestApp` fixture automatically. Scene tests launch it with an isolated bundle
-identifier and defaults suite, exercise presentation and dismissal, and quit and relaunch it to verify restoration
+SwiftPM builds the `UtilityWindowTestApp` fixture automatically. Scene tests give the disposable app an isolated
+bundle identifier, ad-hoc signing identity, and defaults suite. Signing binds its Info.plist to the executable so
+AppKit's restoration service does not reuse another scenario's windows. Tests exercise presentation and dismissal,
+then quit and relaunch the app to verify restoration
 behavior.
-An ordinary window must restore on relaunch while the utility window stays closed.
+An ordinary window must restore its saved value on relaunch while the utility window stays closed.
+The final launch closes its windows before termination to clear their restoration state.
 The fixture's coverage profiles are collected alongside the test process's profiles.
 
 ## Example

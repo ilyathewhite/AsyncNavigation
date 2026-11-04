@@ -25,7 +25,7 @@ extension AsyncNavigationTestSuites.UtilityWindowSceneTests {
         let firstLaunch = try await app.run("leave-open")
         try #require(firstLaunch.failures.isEmpty, "\(firstLaunch.failures.joined(separator: "; "))")
         let relaunch = try await app.run("relaunch")
-        #expect(relaunch.failures.isEmpty, "\(relaunch.failures.joined(separator: "; "))")
+        #expect(relaunch.failures.isEmpty, "\(relaunch.failures.joined(separator: "; ")); windows: \(relaunch.windows)")
         #expect(relaunch.checks.contains("ordinary window restores after relaunch"))
     }
 }
@@ -63,6 +63,15 @@ private final class UtilityTestApplication {
         ]
         let plist = try PropertyListSerialization.data(fromPropertyList: info, format: .xml, options: 0)
         try plist.write(to: bundleURL.appendingPathComponent("Contents/Info.plist"))
+
+        // The copied executable still has its build-time signing identity. Bind the disposable
+        // bundle's identity and Info.plist so AppKit's restoration service isolates this scenario.
+        let signer = Process()
+        signer.executableURL = URL(fileURLWithPath: "/usr/bin/codesign")
+        signer.arguments = ["--force", "--sign", "-", "--identifier", bundleID, bundleURL.path]
+        try signer.run()
+        signer.waitUntilExit()
+        try #require(signer.terminationStatus == 0, "Could not sign the disposable window-test app")
     }
 
     func run(_ mode: String) async throws -> Report {
