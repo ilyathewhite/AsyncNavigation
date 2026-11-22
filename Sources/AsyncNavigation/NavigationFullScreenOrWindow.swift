@@ -68,6 +68,10 @@ private struct DismissModalWindowActionKey: EnvironmentKey {
 }
 
 public extension EnvironmentValues {
+    /// The fill over a presenting window's content while its modal child is open.
+    /// Set this on a scene or view to customize the default 10% primary-color overlay.
+    @Entry var modalWindowBackdropStyle = AnyShapeStyle(Color.primary.opacity(0.1))
+
     var dismissModalWindowAction: (() -> Void)? {
         get { self[DismissModalWindowActionKey.self] }
         set { self[DismissModalWindowActionKey.self] = newValue }
@@ -79,6 +83,7 @@ public extension EnvironmentValues {
 struct FullScreenOrWindow<C: ViewModelUIContainer, V: View>: ViewModifier {
 #if os(macOS)
     @Environment(\.openWindow) private var openWindow
+    @Environment(\.modalWindowBackdropStyle) private var backdropStyle
     @State private var id: UUID?
 #endif
 
@@ -126,7 +131,8 @@ struct FullScreenOrWindow<C: ViewModelUIContainer, V: View>: ViewModifier {
         }
         .overlay {
             if isModal, id != nil, let viewModelUI, !viewModelUI.viewModel.isCancelled {
-                Color.primary.opacity(0.1)
+                Rectangle()
+                    .fill(backdropStyle)
                     .contentShape(Rectangle())
                     .onTapGesture {
                         ViewModelUIRegistry.requestDismiss(id: viewModelUI.id)

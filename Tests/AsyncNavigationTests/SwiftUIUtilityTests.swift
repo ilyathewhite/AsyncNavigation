@@ -195,6 +195,39 @@ extension AsyncNavigationTestSuites.SwiftUIUtilityTests {
     }
 
     @Test
+    func modalWindowBackdropUsesPresentingEnvironment() async throws {
+        let state = HostedPresentationState()
+        let viewModel = TestStringViewModel(name: "modal")
+        let window = hostInWindow(
+            HostedPresentationView(state: state)
+                .environment(\.modalWindowBackdropStyle, AnyShapeStyle(Color.red))
+                .background(Color.blue)
+        )
+        defer { window.close() }
+        let view = try #require(window.contentView)
+
+        func showsRedBackdrop() throws -> Bool {
+            view.layoutSubtreeIfNeeded()
+            let bitmap = try #require(view.bitmapImageRepForCachingDisplay(in: view.bounds))
+            view.cacheDisplay(in: view.bounds, to: bitmap)
+            let center = bitmap.colorAt(x: bitmap.pixelsWide / 2, y: bitmap.pixelsHigh / 2)
+            let color = try #require(center?.usingColorSpace(.sRGB))
+            return color.redComponent > color.blueComponent
+        }
+
+        await renderHostedView()
+        #expect(try !showsRedBackdrop())
+        state.viewModelUI = ViewModelUI<StringNamespace>(viewModel)
+        state.isPresented = true
+        await renderHostedView()
+        #expect(try showsRedBackdrop())
+        state.isPresented = false
+        state.viewModelUI = nil
+        await renderHostedView()
+        #expect(try !showsRedBackdrop())
+    }
+
+    @Test
     func hostedSwiftUIContainersRenderNavigationAndWindowPaths() async {
         let flowRoot = TestStringViewModel(name: "flow-root")
         let pushed = TestStringViewModel(name: "pushed")
